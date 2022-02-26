@@ -9,7 +9,7 @@ from parser.exceptions import (
     UnexpectedSymbols,
     UnhandledSymbolType,
 )
-from parser.symbol_tree import Tree
+from parser.tree import Tree
 from typing import Dict, List, Optional, Type
 
 

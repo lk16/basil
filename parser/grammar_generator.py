@@ -13,28 +13,33 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 
-def bnf_like_expression(parser: Parser) -> str:
-    if parser.symbol_type is not None:
+def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
+    if parser.symbol_type is not None and depth != 0:
         return parser.symbol_type.name
 
     if isinstance(parser, SymbolParser):  # pragma: nocover
         raise NotImplementedError  # unreachable
 
     elif isinstance(parser, ConcatenationParser):
-        return " ".join(bnf_like_expression(child) for child in parser.children)
-
-    elif isinstance(parser, OrParser):
-        return (
-            "("
-            + " | ".join(bnf_like_expression(child) for child in parser.children)
-            + ")"
+        return " ".join(
+            bnf_like_expression(child, depth + 1) for child in parser.children
         )
 
+    elif isinstance(parser, OrParser):
+        expr = " | ".join(
+            bnf_like_expression(child, depth + 1) for child in parser.children
+        )
+
+        if depth != 0:
+            expr = f"({expr})"
+
+        return expr
+
     elif isinstance(parser, OptionalParser):
-        return "(" + bnf_like_expression(parser.child) + ")?"
+        return "(" + bnf_like_expression(parser.child, depth + 1) + ")?"
 
     elif isinstance(parser, RepeatParser):
-        expr = "(" + bnf_like_expression(parser.child) + ")"
+        expr = "(" + bnf_like_expression(parser.child, depth + 1) + ")"
         if parser.min_repeats == 0:
             return expr + "*"
         elif parser.min_repeats == 1:

@@ -238,6 +238,61 @@ def test_parser_optional_symbol(code: str) -> None:
         assert expected_ok
 
 
+def test_or_parser_longest() -> None:
+
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: OrParser(
+            SymbolParser(SymbolsForTesting.A),
+            SymbolParser(SymbolsForTesting.B),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("AA"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    tree = new_parse_generic(
+        rewrite_rules, SymbolsForTesting.PROGRAM, "AA", SymbolsForTesting
+    )
+
+    assert tree.symbol_type == SymbolsForTesting.PROGRAM
+    assert len(tree.children) == 1
+    assert tree.children[0].symbol_type == SymbolsForTesting.B
+
+
+def test_regex_parser_forbidden() -> None:
+
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: RegexBasedParser("^AAB*", forbidden=["AA"]),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError):
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "AA", SymbolsForTesting
+        )
+
+
+def test_symbol_parser_forward_symbol_type() -> None:
+
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: SymbolParser(SymbolsForTesting.A),
+        SymbolsForTesting.A: OrParser(LiteralParser("AA"), LiteralParser("BB")),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    tree = new_parse_generic(
+        rewrite_rules, SymbolsForTesting.PROGRAM, "AA", SymbolsForTesting
+    )
+
+    assert tree.symbol_type == SymbolsForTesting.PROGRAM
+
+
 @pytest.mark.parametrize(
     ["code", "expected_match"],
     [

@@ -42,7 +42,12 @@ class OrParser(Parser):
         if not longest_parsed:
             raise InternalParseError(offset, self.symbol_type)
 
-        return longest_parsed
+        return Tree(
+            longest_parsed.symbol_offset,
+            longest_parsed.symbol_length,
+            self.symbol_type,
+            [longest_parsed],
+        )
 
 
 class RegexBasedParser(Parser):
@@ -223,10 +228,14 @@ def new_parse_generic(
         set_rewrite_rules(parser, rewrite_rules)
 
     tree = rewrite_rules[root_symbol]
-    tree.symbol_type = root_symbol
+
+    # Prevent infinite recursion
+    if not isinstance(tree, SymbolParser):
+        tree.symbol_type = root_symbol
 
     try:
         parsed = tree.parse(code, 0)
+        parsed.symbol_type = root_symbol
 
         if parsed.symbol_length != len(code):
             raise InternalParseError(len(code), None)

@@ -63,3 +63,30 @@ def prune_tree(tree: Tree, prune_condition: Callable[[Tree], bool]) -> Optional[
 
     new_tree = replace(tree, children=pruned_children)
     return new_tree
+
+
+def prune_no_symbol(tree: Tree) -> Tree:
+    def get_descendants_with_symbol(tree: Tree) -> List[Tree]:
+        with_symbol: List[Tree] = []
+
+        for child in tree.children:
+            if child.symbol_type is None:
+                with_symbol += get_descendants_with_symbol(child)
+            else:
+                with_symbol.append(child)
+
+        return with_symbol
+
+    descendants_with_symbol = get_descendants_with_symbol(tree)
+
+    children = [
+        Tree(
+            child.symbol_offset,
+            child.symbol_length,
+            child.symbol_type,
+            get_descendants_with_symbol(child),
+        )
+        for child in descendants_with_symbol
+    ]
+
+    return Tree(tree.symbol_offset, tree.symbol_length, tree.symbol_type, children)

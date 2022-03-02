@@ -1,5 +1,6 @@
 import re
 from enum import IntEnum, auto
+from parser.exceptions import UnexpectedSymbolType, UnhandledSymbolType
 from parser.parser import (
     ConcatenationParser,
     InternalParseError,
@@ -288,7 +289,46 @@ def test_humanize_parse_error(
     assert pe.line == expected_line
 
 
-def test_parse_error_concatenation() -> None:
+def test_parse_unhandled_symbol_type() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            SymbolParser(SymbolsForTesting.B),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+    }
+
+    with pytest.raises(UnhandledSymbolType):
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "", SymbolsForTesting
+        )
+
+
+def test_parse_unexpected_symbol_type() -> None:
+    class Dummy(IntEnum):
+        Something = 999  # don't collide with value of SymbolsForTesting
+
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            SymbolParser(SymbolsForTesting.B),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+        Dummy.Something: LiteralParser("S"),
+    }
+
+    with pytest.raises(UnexpectedSymbolType):
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "", SymbolsForTesting
+        )
+
+
+def test_parse_error_concatenation_parser() -> None:
     rewrite_rules: Dict[IntEnum, Parser] = {
         SymbolsForTesting.PROGRAM: ConcatenationParser(
             SymbolParser(SymbolsForTesting.A),
@@ -303,6 +343,110 @@ def test_parse_error_concatenation() -> None:
     with pytest.raises(ParseError) as e:
         new_parse_generic(
             rewrite_rules, SymbolsForTesting.PROGRAM, "AC", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:2" in str(e.value)
+
+
+def test_parse_error_or_parser() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            OrParser(
+                SymbolParser(SymbolsForTesting.B),
+                SymbolParser(SymbolsForTesting.C),
+            ),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "AA", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:2" in str(e.value)
+
+
+def test_parse_error_regex_parser() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A), RegexBasedParser("^(B|C)D")
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "ABB", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:2" in str(e.value)
+
+
+def test_parse_error_repeat_parser() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            RepeatParser(SymbolParser(SymbolsForTesting.B)),
+            SymbolParser(SymbolsForTesting.C),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "ABBBD", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:5" in str(e.value)
+
+
+def test_parse_error_optional_parser() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            OptionalParser(SymbolParser(SymbolsForTesting.B)),
+            SymbolParser(SymbolsForTesting.C),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "AD", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:2" in str(e.value)
+
+
+def test_parse_error_literal_parser() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            LiteralParser("X"),
+            LiteralParser("Y"),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "XA", SymbolsForTesting
         )
 
     assert "<source_file>:1:2" in str(e.value)

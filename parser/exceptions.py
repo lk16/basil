@@ -48,7 +48,7 @@ class UnhandledSymbolType(Exception):
         super().__init__(f"Unhandled symbol type {symbol_type.name}")
 
 
-class UnexpectedSymbols(Exception):
+class UnexpectedSymbolType(Exception):
     """
     Indicates rewrite rules has an unexpected entry.
     """

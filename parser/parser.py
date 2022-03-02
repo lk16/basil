@@ -6,7 +6,7 @@ from enum import IntEnum
 from parser.exceptions import (
     InternalParseError,
     ParseError,
-    UnexpectedSymbols,
+    UnexpectedSymbolType,
     UnhandledSymbolType,
 )
 from parser.tree import Tree
@@ -215,9 +215,9 @@ def new_parse_generic(
         except KeyError:
             raise UnhandledSymbolType(enum_value)
 
-    if len(rewrite_rules) != len(symbols_enum):
+    if set(rewrite_rules.keys()) != set(symbols_enum):
         unexpected_keys = set(rewrite_rules.keys()) - set(symbols_enum)
-        raise UnexpectedSymbols(unexpected_keys)
+        raise UnexpectedSymbolType(unexpected_keys)
 
     for parser in rewrite_rules.values():
         set_rewrite_rules(parser, rewrite_rules)

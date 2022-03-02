@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from enum import IntEnum
 from parser.exceptions import (
     InternalParseError,
@@ -102,17 +102,23 @@ class OptionalParser(Parser):
         self.child = child
 
     def parse(self, code: str, offset: int) -> Tree:
+
+        children: List[Tree] = []
+        length = 0
+
         try:
             parsed = self.child.parse(code, offset)
+            children = [parsed]
+            length = parsed.symbol_length
         except InternalParseError:
-            return Tree(
-                offset,
-                0,
-                self.symbol_type,
-                [],
-            )
-        else:
-            return parsed
+            pass
+
+        return Tree(
+            offset,
+            length,
+            self.symbol_type,
+            children,
+        )
 
 
 class ConcatenationParser(Parser):
@@ -149,12 +155,9 @@ class SymbolParser(Parser):
 
         rewritten_expression = self.rewrite_rules[self.symbol_type]
         rewritten_expression.symbol_type = self.symbol_type
-        tree = rewritten_expression.parse(code, offset)
+        child = rewritten_expression.parse(code, offset)
 
-        if tree.symbol_type is None:
-            tree = replace(tree, symbol_type=self.symbol_type)
-
-        return tree
+        return Tree(child.symbol_offset, child.symbol_length, self.symbol_type, [child])
 
 
 class LiteralParser(Parser):

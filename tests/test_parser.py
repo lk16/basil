@@ -1,6 +1,6 @@
 import re
 from enum import IntEnum, auto
-from parser.generic import (
+from parser.parser import (
     ConcatenationParser,
     InternalParseError,
     LiteralParser,
@@ -286,3 +286,23 @@ def test_humanize_parse_error(
     assert pe.line_number == expected_line_number
     assert pe.column_number == expected_column_number
     assert pe.line == expected_line
+
+
+def test_parse_error_concatenation() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {
+        SymbolsForTesting.PROGRAM: ConcatenationParser(
+            SymbolParser(SymbolsForTesting.A),
+            SymbolParser(SymbolsForTesting.B),
+        ),
+        SymbolsForTesting.A: LiteralParser("A"),
+        SymbolsForTesting.B: LiteralParser("B"),
+        SymbolsForTesting.C: LiteralParser("C"),
+        SymbolsForTesting.D: LiteralParser("D"),
+    }
+
+    with pytest.raises(ParseError) as e:
+        new_parse_generic(
+            rewrite_rules, SymbolsForTesting.PROGRAM, "AC", SymbolsForTesting
+        )
+
+    assert "<source_file>:1:2" in str(e.value)

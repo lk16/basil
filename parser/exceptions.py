@@ -26,8 +26,17 @@ class ParseError(Exception):
         self.line = line
         self.expected_symbol_types = expected_symbol_types
 
-        # TODO make this show some human readable parse error message
-        super().__init__()
+        # TODO pass source file path
+        source_file = "<source_file>"
+
+        msg = (
+            f"Failed to parse at {source_file}:{line_number}:{column_number}\n"
+            + f"{self.line}\n"
+            + " " * (self.column_number - 1)
+            + "^"
+        )
+
+        super().__init__(msg)
 
 
 class UnhandledSymbolType(Exception):

@@ -9,7 +9,8 @@
 - remove anything from `Tree` without symboltype
 - implement `__getitem__()` for `Tree`
 
-###
+### Grammar and parser
+- add tests for grammar generator
 - make gammar generator escape strings like python literals
 - make parser for grammars
 - make function that generates parser from grammar

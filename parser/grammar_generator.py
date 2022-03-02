@@ -12,6 +12,35 @@ from parser.parser import (
 from pathlib import Path
 from typing import Dict, Tuple
 
+ESCAPE_SEQUENCES = [
+    ("\\", "\\\\"),
+    ("'", "\\'"),
+    ('"', '\\"'),
+    ("\a", "\\a"),
+    ("\b", "\\b"),
+    ("\f", "\\f"),
+    ("\n", "\\n"),
+    ("\r", "\\r"),
+    ("\t", "\\t"),
+    ("\v", "\\v"),
+]
+
+
+def escape_string(s: str) -> str:
+    result = s
+    for before, after in ESCAPE_SEQUENCES:
+        result = result.replace(before, after)
+
+    return result
+
+
+def unescape_string(s: str) -> str:
+    result = s
+    for after, before in ESCAPE_SEQUENCES:
+        result = result.replace(before, after)
+
+    return result
+
 
 def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
     if parser.symbol_type is not None and depth != 0:
@@ -48,16 +77,16 @@ def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
             return expr + f"{parser.min_repeats,...}"
 
     elif isinstance(parser, RegexBasedParser):
-        return "regex(" + parser.regex.pattern[1:] + ")"
+        return "regex(" + escape_string(parser.regex.pattern[1:]) + ")"
 
     elif isinstance(parser, LiteralParser):
-        return f'"{parser.literal}"'
+        return '"' + escape_string(parser.literal) + '"'
 
     else:  # pragma: nocover
         raise NotImplementedError
 
 
-def check_grammar_file_staleness(
+def check_grammar_file_staleness(  # pragma: nocover
     grammar_file: Path, rewrite_rules: Dict[IntEnum, Parser], root_symbol: IntEnum
 ) -> Tuple[bool, str]:
     if grammar_file.exists():
@@ -71,7 +100,7 @@ def check_grammar_file_staleness(
     return stale, new_grammar
 
 
-def regenerate_bnf_like_grammar_file(
+def regenerate_bnf_like_grammar_file(  # pragma: nocover
     rewrite_rules: Dict[IntEnum, Parser],
     root_symbol: IntEnum,
 ) -> str:

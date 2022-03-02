@@ -10,10 +10,10 @@ class Tree:
     symbol_type: Optional[IntEnum]
     children: List["Tree"]
 
-    def size(self) -> int:
+    def size(self) -> int:  # pragma: nocover
         return 1 + sum(child.size() for child in self.children)
 
-    def dump(self, code: str) -> Dict[str, Any]:
+    def dump(self, code: str) -> Dict[str, Any]:  # pragma: nocover
         type_str = ""
 
         if self.symbol_type:

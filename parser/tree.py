@@ -43,13 +43,6 @@ def prune_by_symbol_types(tree: Tree, symbol_types: Set[IntEnum]) -> Optional[Tr
     return prune_tree(tree, prune_condition)
 
 
-def prune_useless(tree: Tree) -> Optional[Tree]:
-    def prune_condition(tree: Tree) -> bool:
-        return tree.symbol_type is None and len(tree.children) == 0
-
-    return prune_tree(tree, prune_condition)
-
-
 def prune_tree(tree: Tree, prune_condition: Callable[[Tree], bool]) -> Optional[Tree]:
     if prune_condition(tree):
         return None
@@ -66,6 +59,8 @@ def prune_tree(tree: Tree, prune_condition: Callable[[Tree], bool]) -> Optional[
 
 
 def prune_no_symbol(tree: Tree) -> Tree:
+    assert tree.symbol_type is not None
+
     def get_descendants_with_symbol(tree: Tree) -> List[Tree]:
         with_symbol: List[Tree] = []
 

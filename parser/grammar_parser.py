@@ -18,9 +18,9 @@ class GrammarSymbolType(IntEnum):
     WHITESPACE_LINE = auto()
     TOKEN_DEFINITION_LINE = auto()
     TOKEN_NAME = auto()
+    TOKEN_COMPOUND_EXPRESSION = auto()
     TOKEN_EXPRESSION = auto()
     WHITESPACE = auto()
-    NON_EMPTY_WHITESPACE = auto()
     LITERAL_EXPRESSION = auto()
 
 
@@ -38,41 +38,43 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.WHITESPACE),
         LiteralParser("="),
         SymbolParser(GrammarSymbolType.WHITESPACE),
-        SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
+        SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
         SymbolParser(GrammarSymbolType.WHITESPACE),
     ),
     GrammarSymbolType.TOKEN_NAME: RegexBasedParser("^[A-Z_]+"),
-    GrammarSymbolType.TOKEN_EXPRESSION: OrParser(
-        SymbolParser(GrammarSymbolType.LITERAL_EXPRESSION),
-        SymbolParser(GrammarSymbolType.TOKEN_NAME),
+    GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION: OrParser(
+        SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
         ConcatenationParser(
-            LiteralParser("("),
-            SymbolParser(GrammarSymbolType.NON_EMPTY_WHITESPACE),
             SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
             SymbolParser(GrammarSymbolType.WHITESPACE),
-            RepeatParser(
-                ConcatenationParser(
-                    LiteralParser("|"),
-                    SymbolParser(GrammarSymbolType.WHITESPACE),
-                    SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
-                    SymbolParser(GrammarSymbolType.WHITESPACE),
-                ),
-            ),
+            SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
+        ),
+        ConcatenationParser(
+            LiteralParser("("),
+            SymbolParser(GrammarSymbolType.WHITESPACE),
+            SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
+            SymbolParser(GrammarSymbolType.WHITESPACE),
             OrParser(
                 LiteralParser(")"),
-                LiteralParser(")?"),
+                LiteralParser(")+"),
                 LiteralParser(")*"),
-                LiteralParser(")+"),
-                LiteralParser(")+"),
+                LiteralParser(")?"),
                 RegexBasedParser("^'\\)\\{\\d*,\\.\\.\\.\\}'"),
             ),
         ),
-        RegexBasedParser(
-            "^[^\n]*?\n"
-        ),  # TODO remove, this matches everything on the rest of the line
+        ConcatenationParser(
+            SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
+            SymbolParser(GrammarSymbolType.WHITESPACE),
+            LiteralParser("|"),
+            SymbolParser(GrammarSymbolType.WHITESPACE),
+            SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
+        ),
+    ),
+    GrammarSymbolType.TOKEN_EXPRESSION: OrParser(
+        SymbolParser(GrammarSymbolType.LITERAL_EXPRESSION),
+        SymbolParser(GrammarSymbolType.TOKEN_NAME),
     ),
     GrammarSymbolType.WHITESPACE: RegexBasedParser("^ *"),
-    GrammarSymbolType.NON_EMPTY_WHITESPACE: RegexBasedParser("^ +"),
     GrammarSymbolType.LITERAL_EXPRESSION: RegexBasedParser(
         '^"([^\\\\]|\\\\("|n|\\\\))*?"'
     ),

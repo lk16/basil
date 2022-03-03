@@ -13,4 +13,5 @@ if __name__ == "__main__":
         REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType
     )
 
-    print(tree)
+    breakpoint()
+    ...

@@ -31,18 +31,21 @@ def escape_string(s: str) -> str:
     for before, after in ESCAPE_SEQUENCES:
         result = result.replace(before, after)
 
-    return result
+    return '"' + result + '"'
 
 
 def unescape_string(s: str) -> str:
-    result = s
+    if len(s) < 2 or s[0] != '"' or s[-1] != '"':
+        raise ValueError
+
+    result = s[1:-1]
     for after, before in ESCAPE_SEQUENCES:
         result = result.replace(before, after)
 
     return result
 
 
-def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
+def _bnf_like_expression(parser: Parser, depth: int = 0) -> str:
     if parser.symbol_type is not None and depth != 0:
         return parser.symbol_type.name
 
@@ -51,12 +54,12 @@ def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
 
     elif isinstance(parser, ConcatenationParser):
         return " ".join(
-            bnf_like_expression(child, depth + 1) for child in parser.children
+            _bnf_like_expression(child, depth + 1) for child in parser.children
         )
 
     elif isinstance(parser, OrParser):
         expr = " | ".join(
-            bnf_like_expression(child, depth + 1) for child in parser.children
+            _bnf_like_expression(child, depth + 1) for child in parser.children
         )
 
         if depth != 0:
@@ -65,10 +68,10 @@ def bnf_like_expression(parser: Parser, depth: int = 0) -> str:
         return expr
 
     elif isinstance(parser, OptionalParser):
-        return "(" + bnf_like_expression(parser.child, depth + 1) + ")?"
+        return "(" + _bnf_like_expression(parser.child, depth + 1) + ")?"
 
     elif isinstance(parser, RepeatParser):
-        expr = "(" + bnf_like_expression(parser.child, depth + 1) + ")"
+        expr = "(" + _bnf_like_expression(parser.child, depth + 1) + ")"
         if parser.min_repeats == 0:
             return expr + "*"
         elif parser.min_repeats == 1:
@@ -94,13 +97,13 @@ def check_grammar_file_staleness(  # pragma: nocover
     else:
         old_grammar = ""
 
-    new_grammar = regenerate_bnf_like_grammar_file(rewrite_rules, root_symbol)
+    new_grammar = parsers_to_grammar(rewrite_rules, root_symbol)
 
     stale = old_grammar != new_grammar
     return stale, new_grammar
 
 
-def regenerate_bnf_like_grammar_file(  # pragma: nocover
+def parsers_to_grammar(  # pragma: nocover
     rewrite_rules: Dict[IntEnum, Parser],
     root_symbol: IntEnum,
 ) -> str:
@@ -116,7 +119,7 @@ def regenerate_bnf_like_grammar_file(  # pragma: nocover
 
     for i, symbol in enumerate(symbols):
         parser = rewrite_rules[symbol]
-        output += f"{symbol.name} = " + bnf_like_expression(parser)
+        output += f"{symbol.name} = " + _bnf_like_expression(parser)
 
         if i == len(symbols) - 1:
             output += "\n"
@@ -124,3 +127,11 @@ def regenerate_bnf_like_grammar_file(  # pragma: nocover
             output += "\n\n"
 
     return output
+
+
+def grammar_to_parsers(grammar_file: Path) -> str:
+    """
+    Reads the grammar file and generates a python parser file from it.
+    """
+
+    raise NotImplementedError

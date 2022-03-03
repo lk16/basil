@@ -4,6 +4,9 @@ version = "0.1.4"
 description = ""
 authors = ["Luuk Verweij <luuk_verweij@msn.com>"]
 license = "BSD"
+packages = [
+    { include = "parser" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

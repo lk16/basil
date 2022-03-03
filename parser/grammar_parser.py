@@ -2,6 +2,7 @@ from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
     LiteralParser,
+    OptionalParser,
     OrParser,
     Parser,
     RegexBasedParser,
@@ -22,6 +23,7 @@ class GrammarSymbolType(IntEnum):
     TOKEN_EXPRESSION = auto()
     WHITESPACE = auto()
     LITERAL_EXPRESSION = auto()
+    REGEX_EXPRESSION = auto()  # This name is far from great
 
 
 REWRITE_RULES: Dict[IntEnum, Parser] = {
@@ -59,7 +61,13 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
                 LiteralParser(")+"),
                 LiteralParser(")*"),
                 LiteralParser(")?"),
-                RegexBasedParser("^'\\)\\{\\d*,\\.\\.\\.\\}'"),
+                RegexBasedParser("^\\)\\{\\d*,\\.\\.\\.\\}"),
+            ),
+            OptionalParser(
+                ConcatenationParser(
+                    SymbolParser(GrammarSymbolType.WHITESPACE),
+                    SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
+                ),
             ),
         ),
         ConcatenationParser(
@@ -73,6 +81,12 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
     GrammarSymbolType.TOKEN_EXPRESSION: OrParser(
         SymbolParser(GrammarSymbolType.LITERAL_EXPRESSION),
         SymbolParser(GrammarSymbolType.TOKEN_NAME),
+        SymbolParser(GrammarSymbolType.REGEX_EXPRESSION),
+    ),
+    GrammarSymbolType.REGEX_EXPRESSION: ConcatenationParser(
+        LiteralParser("regex("),
+        SymbolParser(GrammarSymbolType.LITERAL_EXPRESSION),
+        LiteralParser(")"),
     ),
     GrammarSymbolType.WHITESPACE: RegexBasedParser("^ *"),
     GrammarSymbolType.LITERAL_EXPRESSION: RegexBasedParser(

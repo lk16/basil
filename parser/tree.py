@@ -28,6 +28,9 @@ class Tree:
     def value(self, code: str) -> str:
         return code[self.symbol_offset : self.symbol_offset + self.symbol_length]
 
+    def __getitem__(self, index: int) -> "Tree":
+        return self.children[index]
+
 
 def prune_zero_length(tree: Tree) -> Optional[Tree]:
     def prune_condition(tree: Tree) -> bool:

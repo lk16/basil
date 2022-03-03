@@ -1,11 +1,13 @@
-from parser.tree import Tree, prune_no_symbol
+from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from typing import List, Optional
 
 from tests.test_parser import SymbolsForTesting
 
 
 # shortcut for tests
-def make_tree(*, c: Optional[List[Tree]] = None, s: Optional[str] = None) -> Tree:
+def make_tree(
+    *, o: int = 0, l: int = 1, c: Optional[List[Tree]] = None, s: Optional[str] = None
+) -> Tree:
     children = c or []
 
     if s:
@@ -13,7 +15,10 @@ def make_tree(*, c: Optional[List[Tree]] = None, s: Optional[str] = None) -> Tre
     else:
         symbol_type = None
 
-    return Tree(0, 1, symbol_type, children)
+    offset = o
+    length = l
+
+    return Tree(offset, length, symbol_type, children)
 
 
 def test_prune_no_symbol_simple() -> None:
@@ -81,3 +86,29 @@ def test_prune_no_symbol_ccompilcated_2() -> None:
         s="A", c=[make_tree(s="B", c=[make_tree(s="C"), make_tree(s="D")])]
     )
     assert pruned_tree == expected_pruned_tree
+
+
+def test_tree_value() -> None:
+    code = "ABCDE"
+    tree = make_tree(o=1, l=3)
+    assert tree.value(code) == "BCD"
+
+
+def test_prune_zero_length() -> None:
+    tree = make_tree(s="A", c=[make_tree(l=0), make_tree(l=0, c=[make_tree(l=0)])])
+    pruned_tree = prune_zero_length(tree)
+
+    assert pruned_tree
+    assert len(pruned_tree.children) == 0
+    assert pruned_tree.symbol_type == SymbolsForTesting.A
+
+
+def test_prune_by_symbol_type() -> None:
+    tree = make_tree(s="A", c=[make_tree(c=[make_tree(s="B", c=[make_tree(s="C")])])])
+    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.B})
+
+    assert pruned_tree
+    assert len(pruned_tree.children) == 1
+    assert pruned_tree.symbol_type == SymbolsForTesting.A
+
+    assert len(pruned_tree.children[0].children) == 0

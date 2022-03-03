@@ -156,7 +156,6 @@ class SymbolParser(Parser):
         assert self.rewrite_rules
 
         rewritten_expression = self.rewrite_rules[self.symbol_type]
-        rewritten_expression.symbol_type = self.symbol_type
         child = rewritten_expression.parse(code, offset)
 
         return Tree(child.symbol_offset, child.symbol_length, self.symbol_type, [child])

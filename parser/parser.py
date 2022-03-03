@@ -52,7 +52,9 @@ class OrParser(Parser):
 
 class RegexBasedParser(Parser):
     def __init__(self, regex: str, forbidden: List[str] = []):
-        assert regex.startswith("^")
+        if not regex.startswith("^"):
+            raise ValueError("Regex should start with a caret '^' character ")
+
         self.regex = re.compile(regex)
         self.forbidden_matches = set(forbidden)
 

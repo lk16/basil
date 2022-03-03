@@ -45,7 +45,12 @@ def unescape_string(s: str) -> str:
     return result
 
 
-def _bnf_like_expression(parser: Parser, depth: int = 0) -> str:
+def _grammar_expression(parser: Parser, depth: int = 0) -> str:
+    """
+    Generates a BNF-like expression from a parser.
+    This expression shows what the parser accepts.
+    """
+
     if parser.symbol_type is not None and depth != 0:
         return parser.symbol_type.name
 
@@ -54,12 +59,12 @@ def _bnf_like_expression(parser: Parser, depth: int = 0) -> str:
 
     elif isinstance(parser, ConcatenationParser):
         return " ".join(
-            _bnf_like_expression(child, depth + 1) for child in parser.children
+            _grammar_expression(child, depth + 1) for child in parser.children
         )
 
     elif isinstance(parser, OrParser):
         expr = " | ".join(
-            _bnf_like_expression(child, depth + 1) for child in parser.children
+            _grammar_expression(child, depth + 1) for child in parser.children
         )
 
         if depth != 0:
@@ -68,30 +73,32 @@ def _bnf_like_expression(parser: Parser, depth: int = 0) -> str:
         return expr
 
     elif isinstance(parser, OptionalParser):
-        return "(" + _bnf_like_expression(parser.child, depth + 1) + ")?"
+        return "(" + _grammar_expression(parser.child, depth + 1) + ")?"
 
     elif isinstance(parser, RepeatParser):
-        expr = "(" + _bnf_like_expression(parser.child, depth + 1) + ")"
+        expr = "(" + _grammar_expression(parser.child, depth + 1) + ")"
         if parser.min_repeats == 0:
             return expr + "*"
         elif parser.min_repeats == 1:
             return expr + "+"
         else:
-            return expr + f"{parser.min_repeats,...}"
+            return expr + "{" + str(parser.min_repeats) + ",...}"
+            # This is currently not supported
+            raise NotImplementedError
 
     elif isinstance(parser, RegexBasedParser):
         return "regex(" + escape_string(parser.regex.pattern[1:]) + ")"
 
     elif isinstance(parser, LiteralParser):
-        return '"' + escape_string(parser.literal) + '"'
+        return escape_string(parser.literal)
 
     else:  # pragma: nocover
         raise NotImplementedError
 
 
-def check_grammar_file_staleness(  # pragma: nocover
+def check_grammar_file_staleness(
     grammar_file: Path, rewrite_rules: Dict[IntEnum, Parser], root_symbol: IntEnum
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str]:  # pragma: nocover
     if grammar_file.exists():
         old_grammar = grammar_file.read_text()
     else:
@@ -103,10 +110,10 @@ def check_grammar_file_staleness(  # pragma: nocover
     return stale, new_grammar
 
 
-def parsers_to_grammar(  # pragma: nocover
+def parsers_to_grammar(
     rewrite_rules: Dict[IntEnum, Parser],
     root_symbol: IntEnum,
-) -> str:
+) -> str:  # pragma: nocover
 
     output = (
         "// Human readable grammar. Easier to understand than actual rewrite rules.\n"
@@ -119,7 +126,7 @@ def parsers_to_grammar(  # pragma: nocover
 
     for i, symbol in enumerate(symbols):
         parser = rewrite_rules[symbol]
-        output += f"{symbol.name} = " + _bnf_like_expression(parser)
+        output += f"{symbol.name} = " + _grammar_expression(parser)
 
         if i == len(symbols) - 1:
             output += "\n"

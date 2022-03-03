@@ -505,3 +505,8 @@ def test_parse_error_literal_parser() -> None:
         )
 
     assert "<source_file>:1:2" in str(e.value)
+
+
+def test_regex_parser_value_error() -> None:
+    with pytest.raises(ValueError):
+        RegexBasedParser("foo")  # does not start with a '^'

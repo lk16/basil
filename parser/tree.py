@@ -71,7 +71,14 @@ def _soft_prune_by_symbol_types(
             if child.symbol_type in symbol_types:
                 with_symbol += get_descendants_without_symbol_types(child, symbol_types)
             else:
-                with_symbol.append(child)
+                with_symbol.append(
+                    replace(
+                        child,
+                        children=get_descendants_without_symbol_types(
+                            child, symbol_types
+                        ),
+                    )
+                )
 
         return with_symbol
 

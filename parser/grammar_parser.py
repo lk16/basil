@@ -25,7 +25,7 @@ class GrammarSymbolType(IntEnum):
     LITERAL_EXPRESSION = auto()
     REGEX_EXPRESSION = auto()  # This name is far from great
     CONCATENATION_EXPRESSION = auto()
-    BRACKETED_EXPRESSION = auto()
+    BRACKET_EXPRESSION = auto()
     CONJUNCTION_EXPRESSION = auto()
 
 
@@ -52,7 +52,7 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.WHITESPACE),
         SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
     ),
-    GrammarSymbolType.BRACKETED_EXPRESSION: ConcatenationParser(
+    GrammarSymbolType.BRACKET_EXPRESSION: ConcatenationParser(
         LiteralParser("("),
         SymbolParser(GrammarSymbolType.WHITESPACE),
         SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
@@ -70,7 +70,7 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.CONCATENATION_EXPRESSION),
         SymbolParser(GrammarSymbolType.CONJUNCTION_EXPRESSION),
         ConcatenationParser(
-            SymbolParser(GrammarSymbolType.BRACKETED_EXPRESSION),
+            SymbolParser(GrammarSymbolType.BRACKET_EXPRESSION),
             OptionalParser(
                 ConcatenationParser(
                     SymbolParser(GrammarSymbolType.WHITESPACE),

@@ -36,15 +36,8 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         regex_value = tree[0].value(code)
         return f"RegexBasedParser({regex_value})"
 
-    elif tree.symbol_type == GrammarSymbolType.BRACKETED_EXPRESSION:
-        return tree_to_python_parser_expression(tree[0], code)
-
-    elif tree.symbol_type == GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION:
-        # TODO This was filtered out earlier, check why that failed
-        return tree_to_python_parser_expression(tree[0], code)
-
-    elif tree.symbol_type == GrammarSymbolType.TOKEN_EXPRESSION:
-        # TODO This was filtered out earlier, check why that failed
+    elif tree.symbol_type == GrammarSymbolType.BRACKET_EXPRESSION:
+        # TODO parse operator at end of bracketed expression
         return tree_to_python_parser_expression(tree[0], code)
 
     elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:

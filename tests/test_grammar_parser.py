@@ -37,6 +37,9 @@ import pytest
         ("A = B (C D)? E (F (G H)? I)? J\n",),
         ("A = (B)? (C D)+ (E)+\n",),
         ('IDENTIFIER = regex("[a-z_]+")\n',),
+        ('IDENTIFIER = regex("\\"")\n',),
+        ('IDENTIFIER = regex("\\n")\n',),
+        ('IDENTIFIER = regex("\\\\")\n',),
     ],
 )
 def test_grammar_parser_accepts(code: str) -> None:

@@ -7,7 +7,6 @@
 ### Cleanup
 - rename `new_parse_generic` to something better
 - remove anything from `Tree` without symboltype
-- implement `__getitem__()` for `Tree`
 
 ### Grammar and parser
 - add tests for grammar generator

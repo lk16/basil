@@ -148,21 +148,39 @@ def grammar_to_parsers(grammar_file: Path) -> str:
         REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType
     )
 
-    assert tree  # TODO
-
     tree = prune_no_symbol(tree)
 
-    assert tree  # TODO
+    assert tree
+    print("tree size =", tree.size())
 
     tree = prune_zero_length(tree)
 
-    assert tree  # TODO
+    assert tree
+    print("tree size =", tree.size())
 
     tree = prune_by_symbol_types(
         tree,
-        {GrammarSymbolType.WHITESPACE_LINE, GrammarSymbolType.WHITESPACE},
+        {
+            GrammarSymbolType.WHITESPACE_LINE,
+            GrammarSymbolType.WHITESPACE,
+            GrammarSymbolType.COMMENT_LINE,
+        },
         prune_subtree=True,
     )
+
+    assert tree
+    print("tree size =", tree.size())
+
+    tree = prune_by_symbol_types(
+        tree,
+        {
+            GrammarSymbolType.LINE,
+        },
+        prune_subtree=False,
+    )
+
+    assert tree
+    print("tree size =", tree.size())
 
     breakpoint()
     ...

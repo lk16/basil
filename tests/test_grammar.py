@@ -1,18 +1,6 @@
-from parser.grammar import _grammar_expression, escape_string
-from parser.parser import (
-    ConcatenationParser,
-    LiteralParser,
-    OptionalParser,
-    OrParser,
-    Parser,
-    RegexBasedParser,
-    RepeatParser,
-    SymbolParser,
-)
+from parser.grammar import escape_string
 
 import pytest
-
-from tests.test_parser import SymbolsForTesting
 
 
 @pytest.mark.parametrize(
@@ -26,33 +14,3 @@ from tests.test_parser import SymbolsForTesting
 )
 def test_escape_string(string: str, expected_escaped_string: str) -> None:
     assert escape_string(string) == expected_escaped_string
-
-
-@pytest.mark.parametrize(
-    ["parser", "expected_grammar"],
-    [
-        (LiteralParser("A"), '"A"'),
-        (LiteralParser("\n"), '"\\n"'),
-        (ConcatenationParser(LiteralParser("A"), LiteralParser("B")), '"A" "B"'),
-        (
-            ConcatenationParser(
-                SymbolParser(SymbolsForTesting.A), SymbolParser(SymbolsForTesting.B)
-            ),
-            "A B",
-        ),
-        (
-            ConcatenationParser(
-                LiteralParser("A"), OrParser(LiteralParser("B"), LiteralParser("C"))
-            ),
-            '"A" ("B" | "C")',
-        ),
-        (OrParser(LiteralParser("B"), LiteralParser("C")), '"B" | "C"'),
-        (OptionalParser(LiteralParser("A")), '("A")?'),
-        (RepeatParser(LiteralParser("A"), min_repeats=0), '("A")*'),
-        (RepeatParser(LiteralParser("A"), min_repeats=1), '("A")+'),
-        (RepeatParser(LiteralParser("A"), min_repeats=2), '("A"){2,...}'),
-        (RegexBasedParser("^[ \n]*"), 'regex("[ \\n]*")'),
-    ],
-)
-def test_grammar_expression(parser: Parser, expected_grammar: str) -> None:
-    assert _grammar_expression(parser) == expected_grammar

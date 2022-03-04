@@ -41,24 +41,42 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return tree_to_python_parser_expression(tree[0], code)
 
     elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
-        # TODO flatten long tails
+        conjunc_items = [tree[0]]
+
+        tail = tree[1]
+
+        while tail.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
+            conjunc_items.append(tail[0])
+            tail = tail[1]
+
+        conjunc_items.append(tail)
 
         return (
             "ConcatenationParser("
-            + tree_to_python_parser_expression(tree[0], code)
-            + ", "
-            + tree_to_python_parser_expression(tree[1], code)
+            + ", ".join(
+                tree_to_python_parser_expression(concat_item, code)
+                for concat_item in conjunc_items
+            )
             + ")"
         )
 
     elif tree.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
-        # TODO flatten long tails
+        conjunc_items = [tree[0]]
+
+        tail = tree[1]
+
+        while tail.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
+            conjunc_items.append(tail[0])
+            tail = tail[1]
+
+        conjunc_items.append(tail)
 
         return (
             "OrParser("
-            + tree_to_python_parser_expression(tree[0], code)
-            + ", "
-            + tree_to_python_parser_expression(tree[1], code)
+            + ", ".join(
+                tree_to_python_parser_expression(conjunc_item, code)
+                for conjunc_item in conjunc_items
+            )
             + ")"
         )
 

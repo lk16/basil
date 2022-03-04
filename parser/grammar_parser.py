@@ -36,8 +36,8 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.WHITESPACE_LINE),
         SymbolParser(GrammarSymbolType.TOKEN_DEFINITION_LINE),
     ),
-    GrammarSymbolType.COMMENT_LINE: RegexBasedParser("^//[^\n]*\n"),
-    GrammarSymbolType.WHITESPACE_LINE: RegexBasedParser("^ *\n"),
+    GrammarSymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
+    GrammarSymbolType.WHITESPACE_LINE: RegexBasedParser(" *\n"),
     GrammarSymbolType.TOKEN_DEFINITION_LINE: ConcatenationParser(
         SymbolParser(GrammarSymbolType.TOKEN_NAME),
         SymbolParser(GrammarSymbolType.WHITESPACE),
@@ -46,7 +46,7 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
         SymbolParser(GrammarSymbolType.WHITESPACE),
     ),
-    GrammarSymbolType.TOKEN_NAME: RegexBasedParser("^[A-Z_]+"),
+    GrammarSymbolType.TOKEN_NAME: RegexBasedParser("[A-Z_]+"),
     GrammarSymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
         SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
         SymbolParser(GrammarSymbolType.WHITESPACE),
@@ -62,7 +62,7 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
             LiteralParser(")+"),
             LiteralParser(")*"),
             LiteralParser(")?"),
-            RegexBasedParser("^\\)\\{\\d*,\\.\\.\\.\\}"),
+            RegexBasedParser("\\)\\{\\d*,\\.\\.\\.\\}"),
         ),
     ),
     GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION: OrParser(
@@ -96,9 +96,9 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.LITERAL_EXPRESSION),
         LiteralParser(")"),
     ),
-    GrammarSymbolType.WHITESPACE: RegexBasedParser("^ *"),
+    GrammarSymbolType.WHITESPACE: RegexBasedParser(" *"),
     GrammarSymbolType.LITERAL_EXPRESSION: RegexBasedParser(
-        '^"([^\\\\]|\\\\("|n|\\\\))*?"'
+        '"([^\\\\]|\\\\("|n|\\\\))*?"'
     ),
 }
 

@@ -263,7 +263,7 @@ def test_or_parser_longest() -> None:
 def test_regex_parser_forbidden() -> None:
 
     rewrite_rules: Dict[IntEnum, Parser] = {
-        SymbolsForTesting.PROGRAM: RegexBasedParser("^AAB*", forbidden=["AA"]),
+        SymbolsForTesting.PROGRAM: RegexBasedParser("AAB*", forbidden=["AA"]),
         SymbolsForTesting.A: LiteralParser("A"),
         SymbolsForTesting.B: LiteralParser("B"),
         SymbolsForTesting.C: LiteralParser("C"),
@@ -306,7 +306,7 @@ def test_symbol_parser_forward_symbol_type() -> None:
     ],
 )
 def test_regex_parser(code: str, expected_match: bool) -> None:
-    parser = RegexBasedParser("^(a|b)c*d")
+    parser = RegexBasedParser("(a|b)c*d")
 
     try:
         parser.parse(code, 0)
@@ -429,7 +429,7 @@ def test_parse_error_or_parser() -> None:
 def test_parse_error_regex_parser() -> None:
     rewrite_rules: Dict[IntEnum, Parser] = {
         SymbolsForTesting.PROGRAM: ConcatenationParser(
-            SymbolParser(SymbolsForTesting.A), RegexBasedParser("^(B|C)D")
+            SymbolParser(SymbolsForTesting.A), RegexBasedParser("(B|C)D")
         ),
         SymbolsForTesting.A: LiteralParser("A"),
         SymbolsForTesting.B: LiteralParser("B"),
@@ -509,4 +509,4 @@ def test_parse_error_literal_parser() -> None:
 
 def test_regex_parser_value_error() -> None:
     with pytest.raises(ValueError):
-        RegexBasedParser("foo")  # does not start with a '^'
+        RegexBasedParser("^foo")  # argument should not start with '^'

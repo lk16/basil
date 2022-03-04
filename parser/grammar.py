@@ -23,7 +23,7 @@ def escape_string(s: str) -> str:
     for before, after in ESCAPE_SEQUENCES:
         result = result.replace(before, after)
 
-    return '"' + result + '"'
+    return f'"{result}"'
 
 
 def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
@@ -164,7 +164,16 @@ def grammar_to_parsers(grammar_file: Path) -> str:
         parser for parser in available_parsers if parser in rewrite_rules_content
     ]
 
-    parser_script = "from enum import IntEnum, auto\n"
+    parser_script = ""
+
+    parser_script += "# ===================================== #\n"
+    parser_script += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
+    parser_script += "# ===================================== #\n\n"
+
+    parser_script += "# flake8: noqa\n"
+    parser_script += "# fmt: off\n\n"  # tell black to not reformat
+
+    parser_script += "from enum import IntEnum, auto\n"
     parser_script += "from parser.parser import (\n"
     for parser in used_parsers:
         parser_script += f"    {parser},\n"

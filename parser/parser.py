@@ -52,10 +52,13 @@ class OrParser(Parser):
 
 class RegexBasedParser(Parser):
     def __init__(self, regex: str, forbidden: List[str] = []):
-        if not regex.startswith("^"):
-            raise ValueError("Regex should start with a caret '^' character ")
+        if regex.startswith("^"):
+            raise ValueError(
+                "Regex should not start with a caret '^' character"
+                + "it's added in __init__() now."
+            )
 
-        self.regex = re.compile(regex)
+        self.regex = re.compile(f"^{regex}")
         self.forbidden_matches = set(forbidden)
 
     def parse(self, code: str, offset: int) -> Tree:

@@ -37,17 +37,6 @@ def escape_string(s: str) -> str:
     return '"' + result + '"'
 
 
-def unescape_string(s: str) -> str:
-    if len(s) < 2 or s[0] != '"' or s[-1] != '"':
-        raise ValueError
-
-    result = s[1:-1]
-    for after, before in ESCAPE_SEQUENCES:
-        result = result.replace(before, after)
-
-    return result
-
-
 def _grammar_expression(parser: Parser, depth: int = 0) -> str:
     """
     Generates a BNF-like expression from a parser.
@@ -137,6 +126,52 @@ def parsers_to_grammar(
     return output
 
 
+def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
+
+    if tree.symbol_type == GrammarSymbolType.LITERAL_EXPRESSION:
+        value = tree.value(code)
+        return "LiteralParser(" + escape_string(value[1:-1]) + ")"
+
+    elif tree.symbol_type == GrammarSymbolType.REGEX_EXPRESSION:
+        regex_value = tree[0].value(code)
+        return "RegexBasedParser(" + escape_string(regex_value[1:-1]) + ")"
+
+    elif tree.symbol_type == GrammarSymbolType.BRACKETED_EXPRESSION:
+        return tree_to_python_parser_expression(tree[0], code)
+
+    elif tree.symbol_type == GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION:
+        # TODO This was filtered out earlier, check why that failed
+        return tree_to_python_parser_expression(tree[0], code)
+
+    elif tree.symbol_type == GrammarSymbolType.TOKEN_EXPRESSION:
+        # TODO This was filtered out earlier, check why that failed
+        return tree_to_python_parser_expression(tree[0], code)
+
+    elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
+        return (
+            "ConcatenationParser("
+            + tree_to_python_parser_expression(tree[0], code)
+            + ", "
+            + tree_to_python_parser_expression(tree[1], code)
+            + ")"
+        )
+
+    elif tree.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
+        return (
+            "OrParser("
+            + tree_to_python_parser_expression(tree[0], code)
+            + ", "
+            + tree_to_python_parser_expression(tree[1], code)
+            + ")"
+        )
+
+    elif tree.symbol_type == GrammarSymbolType.TOKEN_NAME:
+        return "SymbolParser(SymbolType." + tree.value(code) + ")"
+
+    print(tree.symbol_type, " ", end="")
+    raise NotImplementedError
+
+
 def grammar_to_parsers(grammar_file: Path) -> str:
     """
     Reads the grammar file and generates a python parser file from it.
@@ -175,6 +210,8 @@ def grammar_to_parsers(grammar_file: Path) -> str:
         tree,
         {
             GrammarSymbolType.LINE,
+            GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION,
+            GrammarSymbolType.TOKEN_EXPRESSION,
         },
         prune_subtree=False,
     )
@@ -182,7 +219,36 @@ def grammar_to_parsers(grammar_file: Path) -> str:
     assert tree
     print("tree size =", tree.size())
 
-    breakpoint()
-    ...
+    assert tree.symbol_type == GrammarSymbolType.FILE
+    file = tree
 
-    return ""
+    rewrite_rules_content = ""
+
+    for token_definition in file.children:
+        assert token_definition.symbol_type == GrammarSymbolType.TOKEN_DEFINITION_LINE
+
+        token_name = token_definition[0].value(code)
+
+        parser_expr = tree_to_python_parser_expression(token_definition[1], code)
+        rewrite_rules_content += f"    SymbolType.{token_name}: {parser_expr},\n"
+
+    parser_script = """
+    from enum import IntEnum, auto
+    from parser.parser import (
+        ConcatenationParser,
+        LiteralParser,
+        OptionalParser,
+        OrParser,
+        Parser,
+        RegexBasedParser,
+        RepeatParser,
+        SymbolParser,
+    )
+    from typing import Dict
+    """
+
+    parser_script += "\n\n{\n"
+    parser_script += rewrite_rules_content
+    parser_script += "}\n"
+
+    return parser_script

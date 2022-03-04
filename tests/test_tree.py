@@ -105,7 +105,7 @@ def test_prune_zero_length() -> None:
 
 def test_prune_by_symbol_type() -> None:
     tree = make_tree(s="A", c=[make_tree(c=[make_tree(s="B", c=[make_tree(s="C")])])])
-    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.B})
+    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.B}, prune_subtree=True)
 
     assert pruned_tree
     assert len(pruned_tree.children) == 1

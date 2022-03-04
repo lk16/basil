@@ -28,7 +28,7 @@ class Tree:
     def value(self, code: str) -> str:
         return code[self.symbol_offset : self.symbol_offset + self.symbol_length]
 
-    def __getitem__(self, index: int) -> "Tree":
+    def __getitem__(self, index: int) -> "Tree":  # pragma: nocover
         return self.children[index]
 
 
@@ -39,7 +39,13 @@ def prune_zero_length(tree: Tree) -> Optional[Tree]:
     return prune_tree(tree, prune_condition)
 
 
-def prune_by_symbol_types(tree: Tree, symbol_types: Set[IntEnum]) -> Optional[Tree]:
+def prune_by_symbol_types(
+    tree: Tree, symbol_types: Set[IntEnum], *, prune_subtree: bool
+) -> Optional[Tree]:
+    if not prune_subtree:
+        # TODO
+        raise NotImplementedError
+
     def prune_condition(tree: Tree) -> bool:
         return tree.symbol_type in symbol_types
 

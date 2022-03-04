@@ -1,4 +1,5 @@
 from enum import IntEnum
+from parser.grammar_parser import REWRITE_RULES, ROOT_SYMBOL, GrammarSymbolType
 from parser.parser import (
     ConcatenationParser,
     LiteralParser,
@@ -8,9 +9,11 @@ from parser.parser import (
     RegexBasedParser,
     RepeatParser,
     SymbolParser,
+    new_parse_generic,
 )
+from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 ESCAPE_SEQUENCES = [
     ("\\", "\\\\"),
@@ -83,8 +86,6 @@ def _grammar_expression(parser: Parser, depth: int = 0) -> str:
             return expr + "+"
         else:
             return expr + "{" + str(parser.min_repeats) + ",...}"
-            # This is currently not supported
-            raise NotImplementedError
 
     elif isinstance(parser, RegexBasedParser):
         return "regex(" + escape_string(parser.regex.pattern[1:]) + ")"
@@ -141,4 +142,29 @@ def grammar_to_parsers(grammar_file: Path) -> str:
     Reads the grammar file and generates a python parser file from it.
     """
 
-    raise NotImplementedError
+    code = grammar_file.read_text()
+
+    tree: Optional[Tree] = new_parse_generic(
+        REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType
+    )
+
+    assert tree  # TODO
+
+    tree = prune_no_symbol(tree)
+
+    assert tree  # TODO
+
+    tree = prune_zero_length(tree)
+
+    assert tree  # TODO
+
+    tree = prune_by_symbol_types(
+        tree,
+        {GrammarSymbolType.WHITESPACE_LINE, GrammarSymbolType.WHITESPACE},
+        prune_subtree=True,
+    )
+
+    breakpoint()
+    ...
+
+    return ""

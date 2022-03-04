@@ -13,7 +13,7 @@ from parser.parser import (
 )
 from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 ESCAPE_SEQUENCES = [
     ("\\", "\\\\"),
@@ -222,32 +222,48 @@ def grammar_to_parsers(grammar_file: Path) -> str:
     assert tree.symbol_type == GrammarSymbolType.FILE
     file = tree
 
-    rewrite_rules_content = ""
+    tokens: List[Tuple[str, Tree]] = []
 
     for token_definition in file.children:
         assert token_definition.symbol_type == GrammarSymbolType.TOKEN_DEFINITION_LINE
+        tokens.append((token_definition[0].value(code), token_definition[1]))
 
-        token_name = token_definition[0].value(code)
+    rewrite_rules_content = ""
 
-        parser_expr = tree_to_python_parser_expression(token_definition[1], code)
+    for token_name, token_expr in sorted(tokens):
+        parser_expr = tree_to_python_parser_expression(token_expr, code)
         rewrite_rules_content += f"    SymbolType.{token_name}: {parser_expr},\n"
 
-    parser_script = """
-    from enum import IntEnum, auto
-    from parser.parser import (
-        ConcatenationParser,
-        LiteralParser,
-        OptionalParser,
-        OrParser,
-        Parser,
-        RegexBasedParser,
-        RepeatParser,
-        SymbolParser,
-    )
-    from typing import Dict
-    """
+    available_parsers = [
+        "ConcatenationParser",
+        "LiteralParser",
+        "OptionalParser",
+        "OrParser",
+        "Parser",
+        "RegexBasedParser",
+        "RepeatParser",
+        "SymbolParser",
+    ]
 
-    parser_script += "\n\n{\n"
+    used_parsers = [
+        parser for parser in available_parsers if parser in rewrite_rules_content
+    ]
+
+    parser_script = "from enum import IntEnum, auto\n"
+    parser_script += "from parser.parser import (\n"
+    for parser in used_parsers:
+        parser_script += f"    {parser},\n"
+
+    parser_script += ")\n\n"
+    parser_script += "from typing import Dict\n"
+
+    parser_script += "\n\n"
+    parser_script += "class SymbolType(IntEnum):\n"
+    for token_name, _ in sorted(tokens):
+        parser_script += f"    {token_name} = auto()\n"
+
+    parser_script += "\n\n"
+    parser_script += "REWRITE_RULES: Dict[IntEnum, Parser] = {\n"
     parser_script += rewrite_rules_content
     parser_script += "}\n"
 

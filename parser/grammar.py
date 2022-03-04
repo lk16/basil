@@ -130,11 +130,11 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
 
     if tree.symbol_type == GrammarSymbolType.LITERAL_EXPRESSION:
         value = tree.value(code)
-        return "LiteralParser(" + escape_string(value[1:-1]) + ")"
+        return f"LiteralParser({value})"
 
     elif tree.symbol_type == GrammarSymbolType.REGEX_EXPRESSION:
         regex_value = tree[0].value(code)
-        return "RegexBasedParser(" + escape_string(regex_value[1:-1]) + ")"
+        return f"RegexBasedParser({regex_value})"
 
     elif tree.symbol_type == GrammarSymbolType.BRACKETED_EXPRESSION:
         return tree_to_python_parser_expression(tree[0], code)
@@ -148,6 +148,8 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return tree_to_python_parser_expression(tree[0], code)
 
     elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
+        # TODO flatten long tails
+
         return (
             "ConcatenationParser("
             + tree_to_python_parser_expression(tree[0], code)
@@ -157,6 +159,8 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         )
 
     elif tree.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
+        # TODO flatten long tails
+
         return (
             "OrParser("
             + tree_to_python_parser_expression(tree[0], code)

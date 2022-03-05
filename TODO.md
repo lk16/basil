@@ -11,5 +11,5 @@
 ### Parser generator
 - type up grammar for grammar parser
 - get it to work, remove old manually typed grammar parser
-- add test to see that parser is up to date with grammar
 - warn if an unknown token name is encountered while parsing
+- reformat generated parser with black

@@ -9,11 +9,11 @@ from parser.parser import (
     RepeatParser,
     SymbolParser,
 )
-from typing import Dict
+from typing import Dict, Final
 
 
 class GrammarSymbolType(IntEnum):
-    FILE = auto()
+    ROOT = auto()
     LINE = auto()
     COMMENT_LINE = auto()
     WHITESPACE_LINE = auto()
@@ -31,8 +31,8 @@ class GrammarSymbolType(IntEnum):
     INTEGER = auto()
 
 
-REWRITE_RULES: Dict[IntEnum, Parser] = {
-    GrammarSymbolType.FILE: RepeatParser(SymbolParser(GrammarSymbolType.LINE)),
+REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
+    GrammarSymbolType.ROOT: RepeatParser(SymbolParser(GrammarSymbolType.LINE)),
     GrammarSymbolType.LINE: OrParser(
         SymbolParser(GrammarSymbolType.COMMENT_LINE),
         SymbolParser(GrammarSymbolType.WHITESPACE_LINE),
@@ -109,5 +109,3 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         '"([^\\\\]|\\\\("|n|\\\\))*?"'
     ),
 }
-
-ROOT_SYMBOL = GrammarSymbolType.FILE

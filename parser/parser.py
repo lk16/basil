@@ -214,12 +214,12 @@ def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
     return ParseError(line_number, column_number, line, expected_symbol_types)
 
 
-def new_parse_generic(
-    rewrite_rules: Dict[IntEnum, Parser],
-    root_symbol: IntEnum,
-    code: str,
-    symbols_enum: Type[IntEnum],
-) -> Tree:
+def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
+    """
+    Checks completeness, inconsistencies.
+    Returns the IntEnum subclass type used for all keys
+    """
+    symbols_enum = type(list((rewrite_rules.keys()))[0])
 
     for enum_value in symbols_enum:
         try:
@@ -231,8 +231,24 @@ def new_parse_generic(
         unexpected_keys = set(rewrite_rules.keys()) - set(symbols_enum)
         raise UnexpectedSymbolType(unexpected_keys)
 
+    try:
+        symbols_enum["ROOT"]
+    except KeyError:
+        raise ValueError(f"{symbols_enum.__name__} does not have a ROOT item")
+
+    return symbols_enum
+
+
+def new_parse_generic(
+    rewrite_rules: Dict[IntEnum, Parser],
+    code: str,
+) -> Tree:
+    symbols_enum = _check_rewrite_rules(rewrite_rules)
+
     for parser in rewrite_rules.values():
         set_rewrite_rules(parser, rewrite_rules)
+
+    root_symbol = symbols_enum["ROOT"]
 
     tree = rewrite_rules[root_symbol]
 

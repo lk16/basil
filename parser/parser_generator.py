@@ -1,4 +1,4 @@
-from parser.grammar_parser import REWRITE_RULES, ROOT_SYMBOL, GrammarSymbolType
+from parser.grammar_parser import REWRITE_RULES, GrammarSymbolType
 from parser.parser import new_parse_generic
 from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from pathlib import Path
@@ -109,9 +109,7 @@ def generate_parser(grammar_path: Path) -> str:
 
     code = grammar_path.read_text()
 
-    tree: Optional[Tree] = new_parse_generic(
-        REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType
-    )
+    tree: Optional[Tree] = new_parse_generic(REWRITE_RULES, code)
 
     tree = prune_no_symbol(tree)
     tree = prune_zero_length(tree)
@@ -137,7 +135,7 @@ def generate_parser(grammar_path: Path) -> str:
     )
 
     assert tree
-    assert tree.symbol_type == GrammarSymbolType.FILE
+    assert tree.symbol_type == GrammarSymbolType.ROOT
     file = tree
 
     tokens: List[Tuple[str, Tree]] = []
@@ -182,7 +180,7 @@ def generate_parser(grammar_path: Path) -> str:
         parser_script += f"    {parser},\n"
 
     parser_script += ")\n"
-    parser_script += "from typing import Dict\n"
+    parser_script += "from typing import Dict, Final\n"
 
     parser_script += "\n\n"
     parser_script += "class SymbolType(IntEnum):\n"
@@ -190,7 +188,7 @@ def generate_parser(grammar_path: Path) -> str:
         parser_script += f"    {token_name} = auto()\n"
 
     parser_script += "\n\n"
-    parser_script += "REWRITE_RULES: Dict[IntEnum, Parser] = {\n"
+    parser_script += "REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {\n"
     parser_script += rewrite_rules_content
     parser_script += "}\n"
 

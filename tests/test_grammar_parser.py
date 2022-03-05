@@ -1,4 +1,4 @@
-from parser.grammar_parser import REWRITE_RULES, ROOT_SYMBOL, GrammarSymbolType
+from parser.grammar_parser import REWRITE_RULES
 from parser.parser import new_parse_generic
 
 import pytest
@@ -43,4 +43,4 @@ import pytest
     ],
 )
 def test_grammar_parser_accepts(code: str) -> None:
-    new_parse_generic(REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType)
+    new_parse_generic(REWRITE_RULES, code)

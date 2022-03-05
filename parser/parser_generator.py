@@ -4,27 +4,6 @@ from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-ESCAPE_SEQUENCES = [
-    ("\\", "\\\\"),
-    ("'", "\\'"),
-    ('"', '\\"'),
-    ("\a", "\\a"),
-    ("\b", "\\b"),
-    ("\f", "\\f"),
-    ("\n", "\\n"),
-    ("\r", "\\r"),
-    ("\t", "\\t"),
-    ("\v", "\\v"),
-]
-
-
-def escape_string(s: str) -> str:
-    result = s
-    for before, after in ESCAPE_SEQUENCES:
-        result = result.replace(before, after)
-
-    return f'"{result}"'
-
 
 def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
 

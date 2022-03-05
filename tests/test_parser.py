@@ -472,3 +472,16 @@ def test_parse_error_literal_parser() -> None:
 def test_regex_parser_value_error() -> None:
     with pytest.raises(ValueError):
         RegexBasedParser("^foo")  # argument should not start with '^'
+
+
+class SymbolsWithoutRoot(IntEnum):
+    A = auto()
+
+
+def test_parse_without_root() -> None:
+    rewrite_rules: Dict[IntEnum, Parser] = {SymbolsWithoutRoot.A: LiteralParser("A")}
+
+    with pytest.raises(ValueError) as e:
+        new_parse_generic(rewrite_rules, "A")
+
+    assert str(e.value) == "SymbolsWithoutRoot does not have a ROOT item"

@@ -1,11 +1,9 @@
 # TODO
 
 ### Parser generator
-- add forbidden literals decorator for REGEX_EXPRESSON
+- naming consistency of decorators in grammar with code
 - warn if an unknown token name is encountered while parsing
 
-### Cleanup
-- rename `new_parse_generic` to something better
 
 ### Parse Errors
 - show meaningful location where parsing failed

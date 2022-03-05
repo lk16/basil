@@ -1,7 +1,6 @@
 # TODO
 
 ### Parser generator
-- add some syntax to parse tree to get certain symbols to not show up in resulting parse tree
 - warn if an unknown token name is encountered while parsing
 
 ### Cleanup

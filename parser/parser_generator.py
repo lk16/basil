@@ -1,7 +1,7 @@
 from parser.grammar.parser import SymbolType, parse
-from parser.tree import Tree, prune_by_symbol_types
+from parser.tree import Tree
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from black import FileMode, format_str
 
@@ -89,35 +89,33 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     tree: Optional[Tree] = parse(code)
 
-    tree = prune_by_symbol_types(
-        tree,
-        {
-            SymbolType.WHITESPACE_LINE,
-            SymbolType.WHITESPACE,
-            SymbolType.COMMENT_LINE,
-        },
-        prune_subtree=True,
-    )
-
-    tree = prune_by_symbol_types(
-        tree,
-        {
-            SymbolType.LINE,
-            SymbolType.TOKEN_COMPOUND_EXPRESSION,
-            SymbolType.TOKEN_EXPRESSION,
-        },
-        prune_subtree=False,
-    )
-
     assert tree
     assert tree.symbol_type == SymbolType.ROOT
     file = tree
 
     tokens: List[Tuple[str, Tree]] = []
 
-    for token_definition in file.children:
-        assert token_definition.symbol_type == SymbolType.TOKEN_DEFINITION_LINE
-        tokens.append((token_definition[0].value(code), token_definition[1]))
+    hard_pruned_tokens: Set[str] = set()
+    soft_pruned_tokens: Set[str] = set()
+    last_decorator_value: Optional[str] = None
+
+    for file_child in file.children:
+        if file_child.symbol_type == SymbolType.DECORATOR_LINE:
+            last_decorator_value = file_child[0].value(code)
+
+        if file_child.symbol_type == SymbolType.TOKEN_DEFINITION_LINE:
+            token_name = file_child[0].value(code)
+            tokens.append((token_name, file_child[1]))
+
+            if last_decorator_value:
+                if last_decorator_value == "prune hard":
+                    hard_pruned_tokens.add(token_name)
+                elif last_decorator_value == "prune soft":
+                    soft_pruned_tokens.add(token_name)
+                else:
+                    raise NotImplementedError
+
+                last_decorator_value = None
 
     rewrite_rules_content = ""
 
@@ -140,13 +138,15 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser for parser in available_parsers if parser in rewrite_rules_content
     ]
 
+    prefix_comments = "# ===================================== #\n"
+    prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
+    prefix_comments += "# ===================================== #\n\n"
+
+    # This turns off formatting for flake8 and black
+    prefix_comments += "# flake8: noqa\n"
+    prefix_comments += "# fmt: off\n\n"
+
     parser_script = ""
-
-    parser_script += "# ===================================== #\n"
-    parser_script += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
-    parser_script += "# ===================================== #\n\n"
-
-    parser_script += "# flake8: noqa\n"
 
     parser_script += "from enum import IntEnum, auto\n"
     parser_script += "from parser.parser import (\n"
@@ -156,25 +156,47 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += f"     parse_generic,\n"
 
     parser_script += ")\n"
-    parser_script += "from parser.tree import Tree\n"
-    parser_script += "from typing import Dict, Final\n"
+    parser_script += "from parser.tree import Tree, prune_by_symbol_types\n"
+    parser_script += "from typing import Dict, Final, Optional, Set\n"
 
     parser_script += "\n\n"
     parser_script += "class SymbolType(IntEnum):\n"
     for token_name, _ in sorted(tokens):
-        parser_script += f"    {token_name} = auto()\n"
+        parser_script += f"    {token_name} = auto()\n\n\n"
 
-    parser_script += "\n\n"
     parser_script += "REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {\n"
     parser_script += rewrite_rules_content
-    parser_script += "}\n"
+    parser_script += "}\n\n\n"
 
-    parser_script += "\n\n"
+    if hard_pruned_tokens:
+        parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        for token_name in sorted(hard_pruned_tokens):
+            parser_script += f"    SymbolType.{token_name},\n"
+        parser_script += "}\n\n\n"
+
+    if soft_pruned_tokens:
+        parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        for token_name in sorted(soft_pruned_tokens):
+            parser_script += f"    SymbolType.{token_name},\n"
+        parser_script += "}\n\n\n"
+
     parser_script += "def parse(code: str) -> Tree:\n"
-    parser_script += "    return parse_generic(REWRITE_RULES, code)\n"
+    parser_script += "    tree: Optional[Tree] = parse_generic(REWRITE_RULES, code)\n\n"
+
+    if hard_pruned_tokens:
+        parser_script += "    tree = prune_by_symbol_types(tree, HARD_PRUNED_SYMBOL_TYPES, prune_subtree=True)\n"
+        parser_script += "    assert tree\n\n"
+
+    if soft_pruned_tokens:
+        parser_script += "    tree = prune_by_symbol_types(tree, SOFT_PRUNED_SYMBOL_TYPES, prune_subtree=False)\n"
+        parser_script += "    assert tree\n\n"
+
+    parser_script += "    return tree\n"
 
     # format with black
-    return format_str(parser_script, mode=FileMode())  # type: ignore
+    formatted_script: str = format_str(parser_script, mode=FileMode())
+
+    return prefix_comments + formatted_script
 
 
 def check_parser_staleness(

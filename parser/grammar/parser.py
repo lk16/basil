@@ -3,6 +3,8 @@
 # ===================================== #
 
 # flake8: noqa
+# fmt: off
+
 from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
@@ -15,27 +17,47 @@ from parser.parser import (
     SymbolParser,
     parse_generic,
 )
-from parser.tree import Tree
-from typing import Dict, Final
+from parser.tree import Tree, prune_by_symbol_types
+from typing import Dict, Final, Optional, Set
 
 
 class SymbolType(IntEnum):
     BRACKET_EXPRESSION = auto()
+
     BRACKET_EXPRESSION_END = auto()
+
     BRACKET_EXPRESSION_REPEAT_RANGE = auto()
+
     COMMENT_LINE = auto()
+
     CONCATENATION_EXPRESSION = auto()
+
     CONJUNCTION_EXPRESSION = auto()
+
+    DECORATOR_LINE = auto()
+
+    DECORATOR_VALUE = auto()
+
     INTEGER = auto()
+
     LINE = auto()
+
     LITERAL_EXPRESSION = auto()
+
     REGEX_EXPRESSION = auto()
+
     ROOT = auto()
+
     TOKEN_COMPOUND_EXPRESSION = auto()
+
     TOKEN_DEFINITION_LINE = auto()
+
     TOKEN_EXPRESSION = auto()
+
     TOKEN_NAME = auto()
+
     WHITESPACE = auto()
+
     WHITESPACE_LINE = auto()
 
 
@@ -70,11 +92,22 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         SymbolParser(SymbolType.WHITESPACE),
         SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
     ),
+    SymbolType.DECORATOR_LINE: ConcatenationParser(
+        LiteralParser("@"),
+        SymbolParser(SymbolType.WHITESPACE),
+        SymbolParser(SymbolType.DECORATOR_VALUE),
+        SymbolParser(SymbolType.WHITESPACE),
+        LiteralParser("\n"),
+    ),
+    SymbolType.DECORATOR_VALUE: OrParser(
+        LiteralParser("prune hard"), LiteralParser("prune soft")
+    ),
     SymbolType.INTEGER: RegexBasedParser("[0-9]+"),
     SymbolType.LINE: OrParser(
         SymbolParser(SymbolType.COMMENT_LINE),
         SymbolParser(SymbolType.WHITESPACE_LINE),
         SymbolParser(SymbolType.TOKEN_DEFINITION_LINE),
+        SymbolParser(SymbolType.DECORATOR_LINE),
     ),
     SymbolType.LITERAL_EXPRESSION: RegexBasedParser('"([^\\\\]|\\\\("|n|\\\\))*?"'),
     SymbolType.REGEX_EXPRESSION: ConcatenationParser(
@@ -116,5 +149,27 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
 }
 
 
+HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
+    SymbolType.COMMENT_LINE,
+    SymbolType.WHITESPACE,
+    SymbolType.WHITESPACE_LINE,
+}
+
+
+SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
+    SymbolType.LINE,
+    SymbolType.TOKEN_COMPOUND_EXPRESSION,
+    SymbolType.TOKEN_EXPRESSION,
+}
+
+
 def parse(code: str) -> Tree:
-    return parse_generic(REWRITE_RULES, code)
+    tree: Optional[Tree] = parse_generic(REWRITE_RULES, code)
+
+    tree = prune_by_symbol_types(tree, HARD_PRUNED_SYMBOL_TYPES, prune_subtree=True)
+    assert tree
+
+    tree = prune_by_symbol_types(tree, SOFT_PRUNED_SYMBOL_TYPES, prune_subtree=False)
+    assert tree
+
+    return tree

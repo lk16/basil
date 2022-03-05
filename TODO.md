@@ -1,6 +1,7 @@
 # TODO
 
 ### Parser generator
+- add forbidden literals decorator for REGEX_EXPRESSON
 - warn if an unknown token name is encountered while parsing
 
 ### Cleanup

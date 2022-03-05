@@ -22,6 +22,7 @@ from typing import Dict, Final, Optional, Set
 
 
 class SymbolType(IntEnum):
+    BANNED_VALUES = auto()
     BRACKET_EXPRESSION = auto()
     BRACKET_EXPRESSION_END = auto()
     BRACKET_EXPRESSION_REPEAT_RANGE = auto()
@@ -44,6 +45,12 @@ class SymbolType(IntEnum):
 
 
 REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
+    SymbolType.BANNED_VALUES: RepeatParser(
+        ConcatenationParser(
+            SymbolParser(SymbolType.WHITESPACE),
+            SymbolParser(SymbolType.LITERAL_EXPRESSION),
+        )
+    ),
     SymbolType.BRACKET_EXPRESSION: ConcatenationParser(
         LiteralParser("("),
         SymbolParser(SymbolType.WHITESPACE),
@@ -61,7 +68,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
     SymbolType.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
         LiteralParser("){"), SymbolParser(SymbolType.INTEGER), LiteralParser(",...}")
     ),
-    SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
+    SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n", forbidden=[]),
     SymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
         SymbolParser(SymbolType.TOKEN_EXPRESSION),
         SymbolParser(SymbolType.WHITESPACE),
@@ -82,16 +89,24 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         LiteralParser("\n"),
     ),
     SymbolType.DECORATOR_VALUE: OrParser(
-        LiteralParser("prune hard"), LiteralParser("prune soft")
+        LiteralParser("prune hard"),
+        LiteralParser("prune soft"),
+        ConcatenationParser(
+            LiteralParser("banned values"),
+            SymbolParser(SymbolType.WHITESPACE),
+            SymbolParser(SymbolType.BANNED_VALUES),
+        ),
     ),
-    SymbolType.INTEGER: RegexBasedParser("[0-9]+"),
+    SymbolType.INTEGER: RegexBasedParser("[0-9]+", forbidden=[]),
     SymbolType.LINE: OrParser(
         SymbolParser(SymbolType.COMMENT_LINE),
         SymbolParser(SymbolType.WHITESPACE_LINE),
         SymbolParser(SymbolType.TOKEN_DEFINITION_LINE),
         SymbolParser(SymbolType.DECORATOR_LINE),
     ),
-    SymbolType.LITERAL_EXPRESSION: RegexBasedParser('"([^\\\\]|\\\\("|n|\\\\))*?"'),
+    SymbolType.LITERAL_EXPRESSION: RegexBasedParser(
+        '"([^\\\\]|\\\\("|n|\\\\))*?"', forbidden=[]
+    ),
     SymbolType.REGEX_EXPRESSION: ConcatenationParser(
         LiteralParser("regex("),
         SymbolParser(SymbolType.LITERAL_EXPRESSION),
@@ -125,9 +140,9 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         SymbolParser(SymbolType.TOKEN_NAME),
         SymbolParser(SymbolType.REGEX_EXPRESSION),
     ),
-    SymbolType.TOKEN_NAME: RegexBasedParser("[A-Z_]+"),
-    SymbolType.WHITESPACE: RegexBasedParser(" *"),
-    SymbolType.WHITESPACE_LINE: RegexBasedParser(" *\n"),
+    SymbolType.TOKEN_NAME: RegexBasedParser("[A-Z_]+", forbidden=[]),
+    SymbolType.WHITESPACE: RegexBasedParser(" *", forbidden=[]),
+    SymbolType.WHITESPACE_LINE: RegexBasedParser(" *\n", forbidden=[]),
 }
 
 

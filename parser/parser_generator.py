@@ -1,3 +1,4 @@
+from copy import deepcopy
 from parser.grammar.parser import SymbolType, parse
 from parser.tree import Tree
 from pathlib import Path
@@ -6,7 +7,12 @@ from typing import List, Optional, Set, Tuple
 from black import FileMode, format_str
 
 
-def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
+def tree_to_python_parser_expression(
+    tree: Tree, code: str, banned_values: List[str]
+) -> str:
+    # TODO write separate regex specific function and remove banned_values from here
+    if banned_values:
+        assert tree.symbol_type == SymbolType.REGEX_EXPRESSION
 
     if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
         value = tree.value(code)
@@ -14,11 +20,15 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
 
     elif tree.symbol_type == SymbolType.REGEX_EXPRESSION:
         regex_value = tree[0].value(code)
-        return f"RegexBasedParser({regex_value})"
+        return (
+            f"RegexBasedParser({regex_value}, forbidden=["
+            + ", ".join(banned_values)
+            + "])"
+        )
 
     elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
         bracket_end = tree[1].value(code)
-        child_expr = tree_to_python_parser_expression(tree[0], code)
+        child_expr = tree_to_python_parser_expression(tree[0], code, banned_values)
 
         if bracket_end == ")":
             return child_expr
@@ -48,7 +58,7 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return (
             "ConcatenationParser("
             + ", ".join(
-                tree_to_python_parser_expression(concat_item, code)
+                tree_to_python_parser_expression(concat_item, code, banned_values)
                 for concat_item in conjunc_items
             )
             + ")"
@@ -68,7 +78,7 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return (
             "OrParser("
             + ", ".join(
-                tree_to_python_parser_expression(conjunc_item, code)
+                tree_to_python_parser_expression(conjunc_item, code, banned_values)
                 for conjunc_item in conjunc_items
             )
             + ")"
@@ -93,34 +103,42 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     assert tree.symbol_type == SymbolType.ROOT
     file = tree
 
-    tokens: List[Tuple[str, Tree]] = []
+    tokens: List[Tuple[str, Tree, List[str]]] = []
 
     hard_pruned_tokens: Set[str] = set()
     soft_pruned_tokens: Set[str] = set()
     last_decorator_value: Optional[str] = None
+    banned_values: List[str] = []
 
     for file_child in file.children:
         if file_child.symbol_type == SymbolType.DECORATOR_LINE:
             last_decorator_value = file_child[0].value(code)
 
+            if last_decorator_value.startswith("banned values"):
+                last_decorator_value = "banned values"
+                banned_values = [item.value(code) for item in file_child[0][0].children]
+
         if file_child.symbol_type == SymbolType.TOKEN_DEFINITION_LINE:
             token_name = file_child[0].value(code)
-            tokens.append((token_name, file_child[1]))
+            tokens.append((token_name, file_child[1], deepcopy(banned_values)))
 
             if last_decorator_value:
                 if last_decorator_value == "prune hard":
                     hard_pruned_tokens.add(token_name)
                 elif last_decorator_value == "prune soft":
                     soft_pruned_tokens.add(token_name)
+                elif last_decorator_value == "banned values":
+                    pass
                 else:
                     raise NotImplementedError
 
                 last_decorator_value = None
+                banned_values = []
 
     rewrite_rules_content = ""
 
-    for token_name, token_expr in sorted(tokens):
-        parser_expr = tree_to_python_parser_expression(token_expr, code)
+    for token_name, token_expr, banned_values in sorted(tokens):
+        parser_expr = tree_to_python_parser_expression(token_expr, code, banned_values)
         rewrite_rules_content += f"    SymbolType.{token_name}: {parser_expr},\n"
 
     available_parsers = [
@@ -161,7 +179,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script += "\n\n"
     parser_script += "class SymbolType(IntEnum):\n"
-    for token_name, _ in sorted(tokens):
+    for token_name, _, _ in sorted(tokens):
         parser_script += f"    {token_name} = auto()\n"
     parser_script += "\n\n"
 

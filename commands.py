@@ -13,7 +13,7 @@ def generate_parser_command() -> None:
         exit(1)
 
     grammar_path = Path(sys.argv[1])
-    parser_path = Path(sys.argv[1])
+    parser_path = Path(sys.argv[2])
 
     regenerate_parser_if_stale(grammar_path, parser_path)
 
@@ -24,7 +24,7 @@ def check_parser_staleness_command() -> None:
         exit(1)
 
     grammar_path = Path(sys.argv[1])
-    parser_path = Path(sys.argv[1])
+    parser_path = Path(sys.argv[2])
 
     generated_parser = generate_parser(grammar_path)
 

@@ -23,41 +23,23 @@ from typing import Dict, Final, Optional, Set
 
 class SymbolType(IntEnum):
     BRACKET_EXPRESSION = auto()
-
     BRACKET_EXPRESSION_END = auto()
-
     BRACKET_EXPRESSION_REPEAT_RANGE = auto()
-
     COMMENT_LINE = auto()
-
     CONCATENATION_EXPRESSION = auto()
-
     CONJUNCTION_EXPRESSION = auto()
-
     DECORATOR_LINE = auto()
-
     DECORATOR_VALUE = auto()
-
     INTEGER = auto()
-
     LINE = auto()
-
     LITERAL_EXPRESSION = auto()
-
     REGEX_EXPRESSION = auto()
-
     ROOT = auto()
-
     TOKEN_COMPOUND_EXPRESSION = auto()
-
     TOKEN_DEFINITION_LINE = auto()
-
     TOKEN_EXPRESSION = auto()
-
     TOKEN_NAME = auto()
-
     WHITESPACE = auto()
-
     WHITESPACE_LINE = auto()
 
 

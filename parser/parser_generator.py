@@ -162,7 +162,8 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "\n\n"
     parser_script += "class SymbolType(IntEnum):\n"
     for token_name, _ in sorted(tokens):
-        parser_script += f"    {token_name} = auto()\n\n\n"
+        parser_script += f"    {token_name} = auto()\n"
+    parser_script += "\n\n"
 
     parser_script += "REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {\n"
     parser_script += rewrite_rules_content

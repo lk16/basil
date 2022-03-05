@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from parser.grammar import grammar_to_parsers
+from parser.parser_generator import grammar_to_parsers
 from pathlib import Path
 
 if __name__ == "__main__":

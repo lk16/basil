@@ -9,7 +9,6 @@
 - remove anything from `Tree` without symboltype
 
 ### Grammar parser
-- rename `grammar.py` to `parser_generator.py`
 - add function to check if a generated parser is up to date with a grammar
 - type up grammar for grammar parser
 - get it to work, remove old manually typed grammar parser

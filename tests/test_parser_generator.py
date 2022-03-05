@@ -1,4 +1,4 @@
-from parser.grammar import escape_string
+from parser.parser_generator import escape_string
 
 import pytest
 

@@ -99,30 +99,22 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
     elif tree.symbol_type == GrammarSymbolType.TOKEN_NAME:
         return "SymbolParser(SymbolType." + tree.value(code) + ")"
 
-    print(tree.symbol_type, " ", end="")
     raise NotImplementedError
 
 
-def grammar_to_parsers(grammar_file: Path) -> str:
+def generate_parser(grammar_path: Path) -> str:
     """
     Reads the grammar file and generates a python parser file from it.
     """
 
-    code = grammar_file.read_text()
+    code = grammar_path.read_text()
 
     tree: Optional[Tree] = new_parse_generic(
         REWRITE_RULES, ROOT_SYMBOL, code, GrammarSymbolType
     )
 
     tree = prune_no_symbol(tree)
-
-    assert tree
-    print("tree size =", tree.size())
-
     tree = prune_zero_length(tree)
-
-    assert tree
-    print("tree size =", tree.size())
 
     tree = prune_by_symbol_types(
         tree,
@@ -133,9 +125,6 @@ def grammar_to_parsers(grammar_file: Path) -> str:
         },
         prune_subtree=True,
     )
-
-    assert tree
-    print("tree size =", tree.size())
 
     tree = prune_by_symbol_types(
         tree,
@@ -148,8 +137,6 @@ def grammar_to_parsers(grammar_file: Path) -> str:
     )
 
     assert tree
-    print("tree size =", tree.size())
-
     assert tree.symbol_type == GrammarSymbolType.FILE
     file = tree
 
@@ -208,3 +195,17 @@ def grammar_to_parsers(grammar_file: Path) -> str:
     parser_script += "}\n"
 
     return parser_script
+
+
+def check_parser_staleness(generated_parser: str, parser_path: Path) -> bool:
+    if not parser_path.exists():
+        return True
+
+    return parser_path.read_text() != generated_parser
+
+
+def regenerate_parser_if_stale(grammar_path: Path, parser_path: Path) -> None:
+    generated_parser = generate_parser(grammar_path)
+
+    if check_parser_staleness(generated_parser, parser_path):
+        parser_path.write_text(generated_parser)

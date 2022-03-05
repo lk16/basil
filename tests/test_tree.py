@@ -1,4 +1,10 @@
-from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
+from parser.tree import (
+    Tree,
+    prune_by_symbol_types,
+    prune_no_symbol,
+    prune_tree,
+    prune_zero_length,
+)
 from typing import List, Optional
 
 from tests.test_parser import SymbolsForTesting
@@ -112,3 +118,19 @@ def test_prune_by_symbol_type() -> None:
     assert pruned_tree.symbol_type == SymbolsForTesting.A
 
     assert len(pruned_tree.children[0].children) == 0
+
+
+def test_prune_zero_length_empty() -> None:
+    assert prune_zero_length(None) is None
+
+
+def test_prune_by_symbol_types_empty() -> None:
+    assert prune_by_symbol_types(None, set(), prune_subtree=True) is None
+
+
+def test_prune_tree_empty() -> None:
+    assert prune_tree(None, lambda x: True) is None
+
+
+def test_prune_no_symbol_empty() -> None:
+    assert prune_no_symbol(None) is None

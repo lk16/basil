@@ -1,21 +1,23 @@
-from parser.grammar_parser import REWRITE_RULES, GrammarSymbolType
+from parser.grammar_parser import REWRITE_RULES, SymbolType
 from parser.parser import new_parse_generic
 from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from black import FileMode, format_str
+
 
 def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
 
-    if tree.symbol_type == GrammarSymbolType.LITERAL_EXPRESSION:
+    if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
         value = tree.value(code)
         return f"LiteralParser({value})"
 
-    elif tree.symbol_type == GrammarSymbolType.REGEX_EXPRESSION:
+    elif tree.symbol_type == SymbolType.REGEX_EXPRESSION:
         regex_value = tree[0].value(code)
         return f"RegexBasedParser({regex_value})"
 
-    elif tree.symbol_type == GrammarSymbolType.BRACKET_EXPRESSION:
+    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
         bracket_end = tree[1].value(code)
         child_expr = tree_to_python_parser_expression(tree[0], code)
 
@@ -33,12 +35,12 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         else:  # pragma: nocover
             raise NotImplementedError
 
-    elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
+    elif tree.symbol_type == SymbolType.CONCATENATION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
+        while tail.symbol_type == SymbolType.CONCATENATION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -53,12 +55,12 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
             + ")"
         )
 
-    elif tree.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
+    elif tree.symbol_type == SymbolType.CONJUNCTION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == GrammarSymbolType.CONJUNCTION_EXPRESSION:
+        while tail.symbol_type == SymbolType.CONJUNCTION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -73,7 +75,7 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
             + ")"
         )
 
-    elif tree.symbol_type == GrammarSymbolType.TOKEN_NAME:
+    elif tree.symbol_type == SymbolType.TOKEN_NAME:
         return "SymbolParser(SymbolType." + tree.value(code) + ")"
 
     raise NotImplementedError  # pragma: nocover
@@ -94,9 +96,9 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     tree = prune_by_symbol_types(
         tree,
         {
-            GrammarSymbolType.WHITESPACE_LINE,
-            GrammarSymbolType.WHITESPACE,
-            GrammarSymbolType.COMMENT_LINE,
+            SymbolType.WHITESPACE_LINE,
+            SymbolType.WHITESPACE,
+            SymbolType.COMMENT_LINE,
         },
         prune_subtree=True,
     )
@@ -104,21 +106,21 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     tree = prune_by_symbol_types(
         tree,
         {
-            GrammarSymbolType.LINE,
-            GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION,
-            GrammarSymbolType.TOKEN_EXPRESSION,
+            SymbolType.LINE,
+            SymbolType.TOKEN_COMPOUND_EXPRESSION,
+            SymbolType.TOKEN_EXPRESSION,
         },
         prune_subtree=False,
     )
 
     assert tree
-    assert tree.symbol_type == GrammarSymbolType.ROOT
+    assert tree.symbol_type == SymbolType.ROOT
     file = tree
 
     tokens: List[Tuple[str, Tree]] = []
 
     for token_definition in file.children:
-        assert token_definition.symbol_type == GrammarSymbolType.TOKEN_DEFINITION_LINE
+        assert token_definition.symbol_type == SymbolType.TOKEN_DEFINITION_LINE
         tokens.append((token_definition[0].value(code), token_definition[1]))
 
     rewrite_rules_content = ""
@@ -149,7 +151,6 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "# ===================================== #\n\n"
 
     parser_script += "# flake8: noqa\n"
-    parser_script += "# fmt: off\n\n"  # tell black to not reformat
 
     parser_script += "from enum import IntEnum, auto\n"
     parser_script += "from parser.parser import (\n"
@@ -169,7 +170,8 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += rewrite_rules_content
     parser_script += "}\n"
 
-    return parser_script
+    # format with black
+    return format_str(parser_script, mode=FileMode())  # type: ignore
 
 
 def check_parser_staleness(

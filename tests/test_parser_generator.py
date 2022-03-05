@@ -1,4 +1,4 @@
-from parser.grammar_parser import GrammarSymbolType
+from parser.grammar_parser import SymbolType
 from parser.parser_generator import tree_to_python_parser_expression
 from parser.tree import Tree
 from typing import List, Optional
@@ -13,7 +13,7 @@ def make_tree(
     children = c or []
 
     if s:
-        symbol_type = GrammarSymbolType[s]
+        symbol_type = SymbolType[s]
     else:
         symbol_type = None
 

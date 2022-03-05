@@ -134,3 +134,17 @@ def test_prune_tree_empty() -> None:
 
 def test_prune_no_symbol_empty() -> None:
     assert prune_no_symbol(None) is None
+
+
+def test_prune_by_symbol_type_keeping_subtree() -> None:
+    tree = make_tree(
+        c=[make_tree(s="A"), make_tree(c=[make_tree(s="B")]), make_tree(s="C")]
+    )
+    pruned_tree = prune_by_symbol_types(
+        tree, {SymbolsForTesting.A}, prune_subtree=False
+    )
+
+    expected_pruned_tree = make_tree(
+        c=[make_tree(c=[make_tree(s="B")]), make_tree(s="C")]
+    )
+    assert pruned_tree == expected_pruned_tree

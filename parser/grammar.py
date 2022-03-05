@@ -37,8 +37,24 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return f"RegexBasedParser({regex_value})"
 
     elif tree.symbol_type == GrammarSymbolType.BRACKET_EXPRESSION:
-        # TODO parse operator at end of bracketed expression
-        return tree_to_python_parser_expression(tree[0], code)
+        bracket_end = tree[1].value(code)
+        child_expr = tree_to_python_parser_expression(tree[0], code)
+
+        if bracket_end == ")":
+            return child_expr
+        elif bracket_end == ")*":
+            return f"RepeatParser({child_expr})"
+        elif bracket_end == ")+":
+            return f"RepeatParser({child_expr}, min_repeats=1)"
+        elif bracket_end == ")?":
+            return f"OptionalParser({child_expr})"
+        elif (
+            len(tree.children) == 1 and tree[0].symbol_type == GrammarSymbolType.INTEGER
+        ):
+            min_repeats = int(tree[0].value(code))
+            return f"RepeatParser({child_expr}, min_repeats={min_repeats})"
+        else:  # pragma: nocover
+            raise NotImplementedError
 
     elif tree.symbol_type == GrammarSymbolType.CONCATENATION_EXPRESSION:
         conjunc_items = [tree[0]]

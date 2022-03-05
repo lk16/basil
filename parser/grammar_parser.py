@@ -27,6 +27,8 @@ class GrammarSymbolType(IntEnum):
     CONCATENATION_EXPRESSION = auto()
     BRACKET_EXPRESSION = auto()
     CONJUNCTION_EXPRESSION = auto()
+    BRACKET_EXPRESSION_END = auto()
+    INTEGER = auto()
 
 
 REWRITE_RULES: Dict[IntEnum, Parser] = {
@@ -57,14 +59,20 @@ REWRITE_RULES: Dict[IntEnum, Parser] = {
         SymbolParser(GrammarSymbolType.WHITESPACE),
         SymbolParser(GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION),
         SymbolParser(GrammarSymbolType.WHITESPACE),
-        OrParser(
-            LiteralParser(")"),
-            LiteralParser(")+"),
-            LiteralParser(")*"),
-            LiteralParser(")?"),
-            RegexBasedParser("\\)\\{\\d*,\\.\\.\\.\\}"),
+        SymbolParser(GrammarSymbolType.BRACKET_EXPRESSION_END),
+    ),
+    GrammarSymbolType.BRACKET_EXPRESSION_END: OrParser(
+        LiteralParser(")"),
+        LiteralParser(")+"),
+        LiteralParser(")*"),
+        LiteralParser(")?"),
+        ConcatenationParser(
+            LiteralParser("){"),
+            SymbolParser(GrammarSymbolType.INTEGER),
+            LiteralParser(",...}"),
         ),
     ),
+    GrammarSymbolType.INTEGER: RegexBasedParser("[0-9]+"),
     GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION: OrParser(
         SymbolParser(GrammarSymbolType.TOKEN_EXPRESSION),
         SymbolParser(GrammarSymbolType.CONCATENATION_EXPRESSION),

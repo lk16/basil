@@ -1,4 +1,4 @@
-from parser.grammar_parser import REWRITE_RULES, SymbolType
+from parser.grammar.parser import REWRITE_RULES, SymbolType
 from parser.parser import new_parse_generic
 from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
 from pathlib import Path

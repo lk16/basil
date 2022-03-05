@@ -1,4 +1,4 @@
-from parser.grammar_parser import SymbolType
+from parser.grammar.parser import SymbolType
 from parser.parser_generator import tree_to_python_parser_expression
 from parser.tree import Tree
 from typing import List, Optional

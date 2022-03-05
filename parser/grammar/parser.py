@@ -1,3 +1,8 @@
+# ===================================== #
+# THIS FILE WAS GENERATED, DO NOT EDIT! #
+# ===================================== #
+
+# flake8: noqa
 from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
@@ -48,9 +53,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         SymbolParser(SymbolType.BRACKET_EXPRESSION_REPEAT_RANGE),
     ),
     SymbolType.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
-        LiteralParser("){"),
-        SymbolParser(SymbolType.INTEGER),
-        LiteralParser(",...}"),
+        LiteralParser("){"), SymbolParser(SymbolType.INTEGER), LiteralParser(",...}")
     ),
     SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
     SymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
@@ -88,7 +91,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
                 ConcatenationParser(
                     SymbolParser(SymbolType.WHITESPACE),
                     SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-                ),
+                )
             ),
         ),
     ),

@@ -27,10 +27,8 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
             return f"RepeatParser({child_expr}, min_repeats=1)"
         elif bracket_end == ")?":
             return f"OptionalParser({child_expr})"
-        elif (
-            len(tree.children) == 1 and tree[0].symbol_type == GrammarSymbolType.INTEGER
-        ):
-            min_repeats = int(tree[0].value(code))
+        elif bracket_end.startswith("){"):
+            min_repeats = int(tree[1][0].value(code))
             return f"RepeatParser({child_expr}, min_repeats={min_repeats})"
         else:  # pragma: nocover
             raise NotImplementedError
@@ -78,10 +76,10 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
     elif tree.symbol_type == GrammarSymbolType.TOKEN_NAME:
         return "SymbolParser(SymbolType." + tree.value(code) + ")"
 
-    raise NotImplementedError
+    raise NotImplementedError  # pragma: nocover
 
 
-def generate_parser(grammar_path: Path) -> str:
+def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     """
     Reads the grammar file and generates a python parser file from it.
     """
@@ -174,14 +172,18 @@ def generate_parser(grammar_path: Path) -> str:
     return parser_script
 
 
-def check_parser_staleness(generated_parser: str, parser_path: Path) -> bool:
+def check_parser_staleness(
+    generated_parser: str, parser_path: Path
+) -> bool:  # pragma: nocover
     if not parser_path.exists():
         return True
 
     return parser_path.read_text() != generated_parser
 
 
-def regenerate_parser_if_stale(grammar_path: Path, parser_path: Path) -> None:
+def regenerate_parser_if_stale(
+    grammar_path: Path, parser_path: Path
+) -> None:  # pragma: nocover
     generated_parser = generate_parser(grammar_path)
 
     if check_parser_staleness(generated_parser, parser_path):

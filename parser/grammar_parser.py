@@ -28,6 +28,7 @@ class GrammarSymbolType(IntEnum):
     BRACKET_EXPRESSION = auto()
     CONJUNCTION_EXPRESSION = auto()
     BRACKET_EXPRESSION_END = auto()
+    BRACKET_EXPRESSION_REPEAT_RANGE = auto()
     INTEGER = auto()
 
 
@@ -66,11 +67,12 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         LiteralParser(")+"),
         LiteralParser(")*"),
         LiteralParser(")?"),
-        ConcatenationParser(
-            LiteralParser("){"),
-            SymbolParser(GrammarSymbolType.INTEGER),
-            LiteralParser(",...}"),
-        ),
+        SymbolParser(GrammarSymbolType.BRACKET_EXPRESSION_REPEAT_RANGE),
+    ),
+    GrammarSymbolType.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
+        LiteralParser("){"),
+        SymbolParser(GrammarSymbolType.INTEGER),
+        LiteralParser(",...}"),
     ),
     GrammarSymbolType.INTEGER: RegexBasedParser("[0-9]+"),
     GrammarSymbolType.TOKEN_COMPOUND_EXPRESSION: OrParser(

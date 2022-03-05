@@ -9,8 +9,6 @@
 - remove anything from `Tree` without symboltype
 
 ### Parser generator
-- require root item to be called `ROOT`
-- add tests for grammar generator
 - type up grammar for grammar parser
 - get it to work, remove old manually typed grammar parser
 - add test to see that parser is up to date with grammar

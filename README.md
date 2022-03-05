@@ -1,8 +1,6 @@
 # Parser
 
-Library that helps with parsing. For an example see [aaa](https://github.com/lk16/aaa), which uses this package.
-
-Allows users to write human-readable BNF-like grammars like this:
+This library allows users to write human-readable BNF-like grammars like below, which can be converted into parsers.
 
 ```
 ROOT = (A | B) (C D)+
@@ -16,7 +14,7 @@ C = regex("ab*")
 D = (A C)?
 ```
 
-These grammars can be converted in a python parser file that will accept the specified grammar and output a grammar tree.
+The generated parser will be saved in a python file that will accept the specified grammar and output a parse tree.
 
 Conversion is as simple as:
 ```sh

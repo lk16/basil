@@ -1,0 +1,30 @@
+// This grammar is somewhat dumbed down JSON to keep this concise
+// It does not support features such as:
+// - decimal values (called float in some languages)
+// - negative numbers
+// - string escape sequences
+// - certain whitespace characters
+
+// The point of this file is to show it's easy to write a parser with this grammar.
+
+ROOT = VALUE
+
+@ prune soft
+VALUE = OBJECT | LIST | STRING | BOOLEAN | INTEGER | NULL
+
+OBJECT = "{" (WHITESPACE | (OBJECT_ELEMENT ("," OBJECT_ELEMENT)* )) "}"
+
+@ prune soft
+OBJECT_ELEMENT = WHITESPACE STRING WHITESPACE ":" WHITESPACE VALUE WHITESPACE
+
+LIST = "[" WHITESPACE | (WHITESPACE VALUE WHITESPACE ("," WHITESPACE VALUE WHITESPACE)* ) "]"
+
+BOOLEAN = "true" | "false"
+
+INTEGER = regex("[0-9]+")
+
+NULL = "null"
+
+STRING = "\"[^\"]*\""
+
+WHITESPACE = regex("[ \n]*")

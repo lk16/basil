@@ -9,7 +9,7 @@ from parser.exceptions import (
     UnexpectedSymbolType,
     UnhandledSymbolType,
 )
-from parser.tree import Tree
+from parser.tree import Tree, prune_no_symbol, prune_zero_length
 from typing import Dict, List, Optional, Type
 
 
@@ -239,7 +239,7 @@ def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
     return symbols_enum
 
 
-def new_parse_generic(
+def parse_generic(
     rewrite_rules: Dict[IntEnum, Parser],
     code: str,
 ) -> Tree:
@@ -257,11 +257,19 @@ def new_parse_generic(
         tree.symbol_type = root_symbol
 
     try:
-        parsed = tree.parse(code, 0)
+        parsed: Optional[Tree] = tree.parse(code, 0)
+
+        assert parsed
         parsed.symbol_type = root_symbol
 
         if parsed.symbol_length != len(code):
-            raise InternalParseError(len(code), None)
+            raise InternalParseError(parsed.symbol_length, None)
+
+        parsed = prune_no_symbol(parsed)
+        assert parsed
+
+        parsed = prune_zero_length(parsed)
+        assert parsed
 
     except InternalParseError as e:
         raise humanize_parse_error(code, e) from e

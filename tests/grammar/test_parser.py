@@ -1,5 +1,5 @@
 from parser.grammar.parser import REWRITE_RULES
-from parser.parser import new_parse_generic
+from parser.parser import parse_generic
 from parser.parser_generator import check_parser_staleness, generate_parser
 from pathlib import Path
 
@@ -45,7 +45,7 @@ import pytest
     ],
 )
 def test_grammar_parser_accepts(code: str) -> None:
-    new_parse_generic(REWRITE_RULES, code)
+    parse_generic(REWRITE_RULES, code)
 
 
 def test_parser_not_stale() -> None:

@@ -13,7 +13,7 @@ from parser.parser import (
     RepeatParser,
     SymbolParser,
     humanize_parse_error,
-    new_parse_generic,
+    parse_generic,
 )
 from typing import Dict
 
@@ -46,7 +46,7 @@ def test_parser_three_options(code: str) -> None:
     expected_ok = re.compile("A|B|C").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -68,7 +68,7 @@ def test_parser_option_of_literal_and_symbol(code: str) -> None:
     expected_ok = re.compile("A|foo").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -90,7 +90,7 @@ def test_parser_three_literals(code: str) -> None:
     expected_ok = re.compile("ABC").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -119,7 +119,7 @@ def test_parser_optionals_with_concatenation(code: str) -> None:
     expected_ok = re.compile("(A|B)(C|D)").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -145,7 +145,7 @@ def test_parser_concatenate_three_symbols(code: str) -> None:
     expected_ok = re.compile("foobarbaz").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -168,7 +168,7 @@ def test_parser_repeat_symbols(code: str) -> None:
     expected_ok = re.compile("A*B").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -191,7 +191,7 @@ def test_parser_repeat_symbols_with_at_least_one(code: str) -> None:
     expected_ok = re.compile("A+B").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -215,7 +215,7 @@ def test_parser_optional_symbol(code: str) -> None:
     expected_ok = re.compile("AB?C").fullmatch(code)
 
     try:
-        new_parse_generic(rewrite_rules, code)
+        parse_generic(rewrite_rules, code)
     except ParseError:
         assert not expected_ok
     else:
@@ -235,7 +235,7 @@ def test_or_parser_longest() -> None:
         SymbolsForTesting.D: LiteralParser("D"),
     }
 
-    tree = new_parse_generic(rewrite_rules, "AA")
+    tree = parse_generic(rewrite_rules, "AA")
 
     assert tree.symbol_type == SymbolsForTesting.ROOT
     assert len(tree.children) == 1
@@ -253,7 +253,7 @@ def test_regex_parser_forbidden() -> None:
     }
 
     with pytest.raises(ParseError):
-        new_parse_generic(rewrite_rules, "AA")
+        parse_generic(rewrite_rules, "AA")
 
 
 def test_symbol_parser_forward_symbol_type() -> None:
@@ -266,7 +266,7 @@ def test_symbol_parser_forward_symbol_type() -> None:
         SymbolsForTesting.D: LiteralParser("D"),
     }
 
-    tree = new_parse_generic(rewrite_rules, "AA")
+    tree = parse_generic(rewrite_rules, "AA")
 
     assert tree.symbol_type == SymbolsForTesting.ROOT
 
@@ -334,7 +334,7 @@ def test_parse_unhandled_symbol_type() -> None:
     }
 
     with pytest.raises(UnhandledSymbolType):
-        new_parse_generic(rewrite_rules, "")
+        parse_generic(rewrite_rules, "")
 
 
 def test_parse_unexpected_symbol_type() -> None:
@@ -354,7 +354,7 @@ def test_parse_unexpected_symbol_type() -> None:
     }
 
     with pytest.raises(UnexpectedSymbolType):
-        new_parse_generic(rewrite_rules, "")
+        parse_generic(rewrite_rules, "")
 
 
 def test_parse_error_concatenation_parser() -> None:
@@ -370,7 +370,7 @@ def test_parse_error_concatenation_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "AC")
+        parse_generic(rewrite_rules, "AC")
 
     assert "<source_file>:1:2" in str(e.value)
 
@@ -391,7 +391,7 @@ def test_parse_error_or_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "AA")
+        parse_generic(rewrite_rules, "AA")
 
     assert "<source_file>:1:2" in str(e.value)
 
@@ -408,7 +408,7 @@ def test_parse_error_regex_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "ABB")
+        parse_generic(rewrite_rules, "ABB")
 
     assert "<source_file>:1:2" in str(e.value)
 
@@ -427,7 +427,7 @@ def test_parse_error_repeat_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "ABBBD")
+        parse_generic(rewrite_rules, "ABBBD")
 
     assert "<source_file>:1:5" in str(e.value)
 
@@ -446,7 +446,7 @@ def test_parse_error_optional_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "AD")
+        parse_generic(rewrite_rules, "AD")
 
     assert "<source_file>:1:2" in str(e.value)
 
@@ -464,7 +464,7 @@ def test_parse_error_literal_parser() -> None:
     }
 
     with pytest.raises(ParseError) as e:
-        new_parse_generic(rewrite_rules, "XA")
+        parse_generic(rewrite_rules, "XA")
 
     assert "<source_file>:1:2" in str(e.value)
 
@@ -482,6 +482,6 @@ def test_parse_without_root() -> None:
     rewrite_rules: Dict[IntEnum, Parser] = {SymbolsWithoutRoot.A: LiteralParser("A")}
 
     with pytest.raises(ValueError) as e:
-        new_parse_generic(rewrite_rules, "A")
+        parse_generic(rewrite_rules, "A")
 
     assert str(e.value) == "SymbolsWithoutRoot does not have a ROOT item"

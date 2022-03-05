@@ -13,7 +13,9 @@ from parser.parser import (
     RegexBasedParser,
     RepeatParser,
     SymbolParser,
+    parse_generic,
 )
+from parser.tree import Tree
 from typing import Dict, Final
 
 
@@ -112,3 +114,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
     SymbolType.WHITESPACE: RegexBasedParser(" *"),
     SymbolType.WHITESPACE_LINE: RegexBasedParser(" *\n"),
 }
+
+
+def parse(code: str) -> Tree:
+    return parse_generic(REWRITE_RULES, code)

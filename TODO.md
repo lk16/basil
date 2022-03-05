@@ -1,10 +1,8 @@
 # TODO
 
 ### Parser generator
-- warn if an unknown token name is encountered while parsing
-- put `parse()` function in generated parser.
-- `parse()` should remove all nodes without symbol
 - add some syntax to parse tree to get certain symbols to not show up in resulting parse tree
+- warn if an unknown token name is encountered while parsing
 
 ### Cleanup
 - rename `new_parse_generic` to something better

@@ -1,6 +1,5 @@
-from parser.grammar.parser import REWRITE_RULES, SymbolType
-from parser.parser import new_parse_generic
-from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
+from parser.grammar.parser import SymbolType, parse
+from parser.tree import Tree, prune_by_symbol_types
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -88,10 +87,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     code = grammar_path.read_text()
 
-    tree: Optional[Tree] = new_parse_generic(REWRITE_RULES, code)
-
-    tree = prune_no_symbol(tree)
-    tree = prune_zero_length(tree)
+    tree: Optional[Tree] = parse(code)
 
     tree = prune_by_symbol_types(
         tree,
@@ -157,7 +153,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     for parser in used_parsers:
         parser_script += f"    {parser},\n"
 
+    parser_script += f"     parse_generic,\n"
+
     parser_script += ")\n"
+    parser_script += "from parser.tree import Tree\n"
     parser_script += "from typing import Dict, Final\n"
 
     parser_script += "\n\n"
@@ -169,6 +168,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {\n"
     parser_script += rewrite_rules_content
     parser_script += "}\n"
+
+    parser_script += "\n\n"
+    parser_script += "def parse(code: str) -> Tree:\n"
+    parser_script += "    return parse_generic(REWRITE_RULES, code)\n"
 
     # format with black
     return format_str(parser_script, mode=FileMode())  # type: ignore

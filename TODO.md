@@ -9,3 +9,6 @@
 ### Parse Errors
 - show meaningful location where parsing failed
 - forward file names in error messages
+
+### Docs
+- start bragging in README

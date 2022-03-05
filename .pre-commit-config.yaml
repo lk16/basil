@@ -1,12 +1,12 @@
 repos:
   - repo: https://github.com/hadialqattan/pycln
-    rev: v1.2.0
+    rev: v1.2.4
     hooks:
       - id: pycln
         args: [--config=pyproject.toml]
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 4.0.1
+    rev: 3.9.2
     hooks:
       - id: flake8
         additional_dependencies:
@@ -24,18 +24,18 @@ repos:
       - id: seed-isort-config
 
   - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.6.4
+    rev: v5.10.1
     hooks:
       - id: isort
         args: ["--profile", "black"]
 
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.1.0
     hooks:
       - id: black
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
@@ -56,7 +56,7 @@ repos:
       - pytest
 
   - repo: https://github.com/lk16/detect-missing-init
-    rev: v0.1.1
+    rev: v0.1.4
     hooks:
-    - id: detect-mising-init
+    - id: detect-missing-init
       args: ['--create', "--track"]

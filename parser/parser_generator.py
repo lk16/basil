@@ -45,7 +45,7 @@ def tree_to_python_parser_expression(
         elif bracket_end == ")?":
             return f"OptionalParser({child_expr})"
         elif bracket_end.startswith("){"):
-            min_repeats = int(tree[1][0].value(code))
+            min_repeats = int(tree[1][0][0].value(code))
             return f"RepeatParser({child_expr}, min_repeats={min_repeats})"
         else:  # pragma: nocover
             raise NotImplementedError

@@ -64,8 +64,13 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
     SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
     SymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
         SymbolParser(SymbolType.TOKEN_EXPRESSION),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
+        RepeatParser(
+            ConcatenationParser(
+                SymbolParser(SymbolType.WHITESPACE),
+                SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
+            ),
+            min_repeats=1,
+        ),
     ),
     SymbolType.CONJUNCTION_EXPRESSION: ConcatenationParser(
         SymbolParser(SymbolType.TOKEN_EXPRESSION),
@@ -125,6 +130,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         SymbolParser(SymbolType.WHITESPACE),
         SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
         SymbolParser(SymbolType.WHITESPACE),
+        LiteralParser("\n"),
     ),
     SymbolType.TOKEN_EXPRESSION: OrParser(
         SymbolParser(SymbolType.LITERAL_EXPRESSION),

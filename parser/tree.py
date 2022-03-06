@@ -66,8 +66,6 @@ def _prune_by_symbol_types_hard(
 def _prune_by_symbol_types_soft(
     tree: Tree, symbol_types: Set[IntEnum]
 ) -> Optional[Tree]:
-    assert tree.symbol_type not in symbol_types
-
     def get_descendants_without_symbol_types(
         tree: Tree, symbol_types: Set[IntEnum]
     ) -> List[Tree]:

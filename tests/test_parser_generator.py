@@ -1,4 +1,10 @@
-from parser.grammar.parser import SymbolType
+from parser.grammar.parser import (
+    HARD_PRUNED_SYMBOL_TYPES,
+    REWRITE_RULES,
+    SOFT_PRUNED_SYMBOL_TYPES,
+    SymbolType,
+)
+from parser.parser import parse_generic
 from parser.parser_generator import tree_to_python_parser_expression
 from parser.tree import Tree
 from typing import List, Optional
@@ -24,130 +30,72 @@ def make_tree(
 
 
 @pytest.mark.parametrize(
-    ["tree", "code", "expected_python_expr"],
+    ["code", "expected_python_expr"],
     [
-        (make_tree(s="LITERAL_EXPRESSION", l=5), '"foo"', 'LiteralParser("foo")'),
-        (make_tree(s="LITERAL_EXPRESSION", l=5), '"\\n"', 'LiteralParser("\\n")'),
+        ('"foo"', 'LiteralParser("foo")'),
+        ('"\\n"', 'LiteralParser("\\n")'),
         (
-            make_tree(s="REGEX_EXPRESSION", c=[make_tree(o=6, l=8)]),
             'regex("[0-9]+")',
             'RegexBasedParser("[0-9]+")',
         ),
         (
-            make_tree(
-                s="BRACKET_EXPRESSION",
-                c=[make_tree(o=1, l=5, s="LITERAL_EXPRESSION"), make_tree(o=6, l=1)],
-            ),
             '("foo")',
             'LiteralParser("foo")',
         ),
         (
-            make_tree(
-                s="BRACKET_EXPRESSION",
-                c=[make_tree(o=1, l=5, s="LITERAL_EXPRESSION"), make_tree(o=6, l=2)],
-            ),
             '("foo")?',
             'OptionalParser(LiteralParser("foo"))',
         ),
         (
-            make_tree(
-                s="BRACKET_EXPRESSION",
-                c=[make_tree(o=1, l=5, s="LITERAL_EXPRESSION"), make_tree(o=6, l=2)],
-            ),
+            "(A)? B",
+            "ConcatenationParser(OptionalParser(SymbolParser(SymbolType.A)), SymbolParser(SymbolType.B))",
+        ),
+        (
             '("foo")*',
             'RepeatParser(LiteralParser("foo"))',
         ),
         (
-            make_tree(
-                s="BRACKET_EXPRESSION",
-                c=[make_tree(o=1, l=5, s="LITERAL_EXPRESSION"), make_tree(o=6, l=2)],
-            ),
             '("foo")+',
             'RepeatParser(LiteralParser("foo"), min_repeats=1)',
         ),
         (
-            make_tree(
-                s="BRACKET_EXPRESSION",
-                c=[
-                    make_tree(o=1, l=5, s="LITERAL_EXPRESSION"),
-                    make_tree(
-                        o=6,
-                        l=8,
-                        s="BRACKET_EXPRESSION_REPEAT_RANGE",
-                        c=[make_tree(o=8, l=1, s="INTEGER")],
-                    ),
-                ],
-            ),
             '("foo"){3,...}',
             'RepeatParser(LiteralParser("foo"), min_repeats=3)',
         ),
         (
-            make_tree(s="TOKEN_NAME", l=1),
             "A",
             "SymbolParser(SymbolType.A)",
         ),
         (
-            make_tree(
-                l=3,
-                s="CONCATENATION_EXPRESSION",
-                c=[make_tree(s="TOKEN_NAME", l=1), make_tree(s="TOKEN_NAME", o=2, l=1)],
-            ),
             "A B",
             "ConcatenationParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B))",
         ),
         (
-            make_tree(
-                l=5,
-                s="CONCATENATION_EXPRESSION",
-                c=[
-                    make_tree(s="TOKEN_NAME", l=1),
-                    make_tree(
-                        l=3,
-                        o=2,
-                        s="CONCATENATION_EXPRESSION",
-                        c=[
-                            make_tree(s="TOKEN_NAME", o=2, l=1),
-                            make_tree(s="TOKEN_NAME", o=4, l=1),
-                        ],
-                    ),
-                ],
-            ),
             "A B C",
             "ConcatenationParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B), SymbolParser(SymbolType.C))",
         ),
         (
-            make_tree(
-                l=3,
-                s="CONJUNCTION_EXPRESSION",
-                c=[make_tree(s="TOKEN_NAME", l=1), make_tree(s="TOKEN_NAME", o=4, l=1)],
-            ),
             "A | B",
             "OrParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B))",
         ),
         (
-            make_tree(
-                l=9,
-                s="CONJUNCTION_EXPRESSION",
-                c=[
-                    make_tree(s="TOKEN_NAME", l=1),
-                    make_tree(
-                        l=3,
-                        o=2,
-                        s="CONJUNCTION_EXPRESSION",
-                        c=[
-                            make_tree(s="TOKEN_NAME", o=4, l=1),
-                            make_tree(s="TOKEN_NAME", o=8, l=1),
-                        ],
-                    ),
-                ],
-            ),
             "A | B | C",
             "OrParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B), SymbolParser(SymbolType.C))",
         ),
     ],
 )
-def test_tree_to_python_parser_expression(
-    tree: Tree, code: str, expected_python_expr: str
-) -> None:
+def test_tree_to_python_parser_expression(code: str, expected_python_expr: str) -> None:
+    code = f"DUMMY_TOKEN = {code}\n"
+
+    root_tree = parse_generic(
+        REWRITE_RULES,
+        code,
+        HARD_PRUNED_SYMBOL_TYPES,
+        SOFT_PRUNED_SYMBOL_TYPES,
+        "ROOT",
+    )
+
+    tree = root_tree[0][1]
+
     python_expr = tree_to_python_parser_expression(tree, code, None)
     assert python_expr == expected_python_expr

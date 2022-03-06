@@ -144,6 +144,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
                     raise NotImplementedError
 
                 last_decorator_value = None
+                forbidden_values_tree = None
 
     rewrite_rules_content = ""
 

@@ -213,17 +213,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += "}\n\n\n"
 
     parser_script += "def parse(code: str) -> Tree:\n"
-    parser_script += "    tree: Optional[Tree] = parse_generic(REWRITE_RULES, code)\n\n"
-
-    if hard_pruned_tokens:
-        parser_script += "    tree = prune_by_symbol_types(tree, HARD_PRUNED_SYMBOL_TYPES, prune_hard=True)\n"
-        parser_script += "    assert tree\n\n"
-
-    if soft_pruned_tokens:
-        parser_script += "    tree = prune_by_symbol_types(tree, SOFT_PRUNED_SYMBOL_TYPES, prune_hard=False)\n"
-        parser_script += "    assert tree\n\n"
-
-    parser_script += "    return tree\n"
+    parser_script += "    return parse_generic(REWRITE_RULES, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES)\n"
 
     # format with black
     formatted_script: str = format_str(parser_script, mode=FileMode())

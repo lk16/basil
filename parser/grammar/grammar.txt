@@ -1,5 +1,7 @@
 // This is the grammar of describes all grammars accepted by the parser generator
 
+// Since this grammar is parsed by a parser generated from itself, it effectively parses itself!
+
 ROOT = (LINE)*
 
 @ prune soft

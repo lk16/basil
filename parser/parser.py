@@ -9,8 +9,8 @@ from parser.exceptions import (
     UnexpectedSymbolType,
     UnhandledSymbolType,
 )
-from parser.tree import Tree, prune_no_symbol, prune_zero_length
-from typing import Dict, List, Optional, Type
+from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
+from typing import Dict, List, Optional, Set, Type
 
 
 @dataclass
@@ -251,6 +251,8 @@ def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
 def parse_generic(
     rewrite_rules: Dict[IntEnum, Parser],
     code: str,
+    prune_hard_symbols: Optional[Set[IntEnum]] = None,
+    prune_soft_symbols: Optional[Set[IntEnum]] = None,
     root_token: str = "ROOT",
 ) -> Tree:
     symbols_enum = _check_rewrite_rules(rewrite_rules)
@@ -275,13 +277,21 @@ def parse_generic(
         if parsed.symbol_length != len(code):
             raise InternalParseError(parsed.symbol_length, None)
 
-        parsed = prune_no_symbol(parsed)
-        assert parsed
-
-        parsed = prune_zero_length(parsed)
-        assert parsed
-
     except InternalParseError as e:
         raise humanize_parse_error(code, e) from e
+
+    parsed = prune_no_symbol(parsed)
+    assert parsed
+
+    parsed = prune_zero_length(parsed)
+    assert parsed
+
+    if prune_hard_symbols is not None:
+        parsed = prune_by_symbol_types(parsed, prune_hard_symbols, prune_hard=True)
+        assert parsed
+
+    if prune_soft_symbols is not None:
+        parsed = prune_by_symbol_types(parsed, prune_soft_symbols, prune_hard=False)
+        assert parsed
 
     return parsed

@@ -18,7 +18,7 @@ from parser.parser import (
     parse_generic,
 )
 from parser.tree import Tree, prune_by_symbol_types
-from typing import Dict, Final, Optional, Set
+from typing import Dict, Final, Set
 
 
 class SymbolType(IntEnum):
@@ -152,12 +152,6 @@ SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
 
 
 def parse(code: str) -> Tree:
-    tree: Optional[Tree] = parse_generic(REWRITE_RULES, code)
-
-    tree = prune_by_symbol_types(tree, HARD_PRUNED_SYMBOL_TYPES, prune_hard=True)
-    assert tree
-
-    tree = prune_by_symbol_types(tree, SOFT_PRUNED_SYMBOL_TYPES, prune_hard=False)
-    assert tree
-
-    return tree
+    return parse_generic(
+        REWRITE_RULES, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES
+    )

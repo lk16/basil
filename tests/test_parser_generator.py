@@ -39,6 +39,14 @@ def make_tree(
             'RegexBasedParser("[0-9]+")',
         ),
         (
+            'regex("A") regex("B")',
+            'ConcatenationParser(RegexBasedParser("A"), RegexBasedParser("B"))',
+        ),
+        (
+            'regex("A") regex("B") regex("C")',
+            'ConcatenationParser(RegexBasedParser("A"), RegexBasedParser("B"), RegexBasedParser("C"))',
+        ),
+        (
             '("foo")',
             'LiteralParser("foo")',
         ),
@@ -49,6 +57,14 @@ def make_tree(
         (
             "(A)? B",
             "ConcatenationParser(OptionalParser(SymbolParser(SymbolType.A)), SymbolParser(SymbolType.B))",
+        ),
+        (
+            "(A)? (B)?",
+            "ConcatenationParser(OptionalParser(SymbolParser(SymbolType.A)), OptionalParser(SymbolParser(SymbolType.B)))",
+        ),
+        (
+            "(A)? (B)? (C)?",
+            "ConcatenationParser(OptionalParser(SymbolParser(SymbolType.A)), OptionalParser(SymbolParser(SymbolType.B)), OptionalParser(SymbolParser(SymbolType.C)))",
         ),
         (
             '("foo")*',
@@ -81,6 +97,14 @@ def make_tree(
         (
             "(A) (B)",
             "ConcatenationParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B))",
+        ),
+        (
+            "(A)+ (B)+",
+            "ConcatenationParser(RepeatParser(SymbolParser(SymbolType.A), min_repeats=1), RepeatParser(SymbolParser(SymbolType.B), min_repeats=1))",
+        ),
+        (
+            "(A)+ (B)+ (C)+",
+            "ConcatenationParser(RepeatParser(SymbolParser(SymbolType.A), min_repeats=1), RepeatParser(SymbolParser(SymbolType.B), min_repeats=1), RepeatParser(SymbolParser(SymbolType.C), min_repeats=1))",
         ),
         (
             "A B C",

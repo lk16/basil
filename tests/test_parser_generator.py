@@ -67,6 +67,14 @@ def make_tree(
             "ConcatenationParser(OptionalParser(SymbolParser(SymbolType.A)), OptionalParser(SymbolParser(SymbolType.B)), OptionalParser(SymbolParser(SymbolType.C)))",
         ),
         (
+            "(A) (B) (C)",
+            "ConcatenationParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B), SymbolParser(SymbolType.C))",
+        ),
+        (
+            "(A B) (C D) (E F)",
+            "ConcatenationParser(ConcatenationParser(SymbolParser(SymbolType.A), SymbolParser(SymbolType.B)), ConcatenationParser(SymbolParser(SymbolType.C), SymbolParser(SymbolType.D)), ConcatenationParser(SymbolParser(SymbolType.E), SymbolParser(SymbolType.F)))",
+        ),
+        (
             '("foo")*',
             'RepeatParser(LiteralParser("foo"))',
         ),

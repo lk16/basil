@@ -287,7 +287,7 @@ def test_regex_parser(code: str, expected_match: bool) -> None:
     parser = RegexBasedParser("(a|b)c*d")
 
     try:
-        parser.parse(code, 0)
+        parser.parse(code, 0, {})
     except InternalParseError:
         assert not expected_match
     else:

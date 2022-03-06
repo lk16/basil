@@ -173,9 +173,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
     prefix_comments += "# ===================================== #\n\n"
 
-    # This turns off formatting for flake8 and black
+    # This turns off formatting for flake8, pycln and black
     prefix_comments += "# flake8: noqa\n"
-    prefix_comments += "# fmt: off\n\n"
+    prefix_comments += "# fmt: off\n"
+    prefix_comments += "# nopycln: file\n\n"
 
     parser_script = ""
 

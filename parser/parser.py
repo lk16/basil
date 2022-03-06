@@ -17,7 +17,9 @@ from typing import Dict, List, Optional, Set, Type
 class Parser:
     symbol_type: Optional[IntEnum] = None
 
-    def parse(self, code: str, offset: int) -> Tree:  # pragma: nocover
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:  # pragma: nocover
         raise NotImplementedError
 
 
@@ -25,12 +27,14 @@ class OrParser(Parser):
     def __init__(self, *args: Parser) -> None:
         self.children = list(args)
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
         longest_parsed: Optional[Tree] = None
 
         for child in self.children:
             try:
-                parsed = child.parse(code, offset)
+                parsed = child.parse(code, offset, rewrite_rules)
             except InternalParseError:
                 continue
 
@@ -61,7 +65,9 @@ class RegexBasedParser(Parser):
         self.regex = re.compile(f"^{regex}")
         self.banned_values_parser = forbidden
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
         match = self.regex.match(code[offset:])
 
         if not match:
@@ -69,7 +75,7 @@ class RegexBasedParser(Parser):
 
         if self.banned_values_parser:
             try:
-                self.banned_values_parser.parse(code, offset)
+                self.banned_values_parser.parse(code, offset, rewrite_rules)
             except InternalParseError:
                 pass
             else:
@@ -83,13 +89,15 @@ class RepeatParser(Parser):
         self.child = child
         self.min_repeats = min_repeats
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
         sub_trees: List[Tree] = []
         child_offset = offset
 
         while True:
             try:
-                parsed = self.child.parse(code, child_offset)
+                parsed = self.child.parse(code, child_offset, rewrite_rules)
             except InternalParseError:
                 break
             else:
@@ -111,13 +119,15 @@ class OptionalParser(Parser):
     def __init__(self, child: Parser) -> None:
         self.child = child
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
 
         children: List[Tree] = []
         length = 0
 
         try:
-            parsed = self.child.parse(code, offset)
+            parsed = self.child.parse(code, offset, rewrite_rules)
             children = [parsed]
             length = parsed.symbol_length
         except InternalParseError:
@@ -135,13 +145,15 @@ class ConcatenationParser(Parser):
     def __init__(self, *args: Parser) -> None:
         self.children = list(args)
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
         sub_trees: List[Tree] = []
 
         child_offset = offset
 
         for child in self.children:
-            parsed = child.parse(code, child_offset)
+            parsed = child.parse(code, child_offset, rewrite_rules)
             sub_trees.append(parsed)
             child_offset += parsed.symbol_length
 
@@ -156,15 +168,15 @@ class ConcatenationParser(Parser):
 class SymbolParser(Parser):
     def __init__(self, symbol_type: IntEnum):
         self.symbol_type = symbol_type
-        self.rewrite_rules: Optional[Dict[IntEnum, Parser]] = None
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
 
         assert self.symbol_type
-        assert self.rewrite_rules
 
-        rewritten_expression = self.rewrite_rules[self.symbol_type]
-        child = rewritten_expression.parse(code, offset)
+        rewritten_expression = rewrite_rules[self.symbol_type]
+        child = rewritten_expression.parse(code, offset, rewrite_rules)
 
         return Tree(child.symbol_offset, child.symbol_length, self.symbol_type, [child])
 
@@ -173,33 +185,13 @@ class LiteralParser(Parser):
     def __init__(self, literal: str):
         self.literal = literal
 
-    def parse(self, code: str, offset: int) -> Tree:
+    def parse(
+        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+    ) -> Tree:
         if not code[offset:].startswith(self.literal):
             raise InternalParseError(offset, self.symbol_type)
 
         return Tree(offset, len(self.literal), self.symbol_type, [])
-
-
-def set_rewrite_rules(parser: Parser, rewrite_rules: Dict[IntEnum, Parser]) -> None:
-    if isinstance(parser, SymbolParser):
-        parser.rewrite_rules = rewrite_rules
-
-    elif isinstance(parser, (ConcatenationParser, OrParser)):
-        for child in parser.children:
-            set_rewrite_rules(child, rewrite_rules)
-
-    elif isinstance(parser, (OptionalParser, RepeatParser)):
-        set_rewrite_rules(parser.child, rewrite_rules)
-
-    elif isinstance(parser, RegexBasedParser):
-        if parser.banned_values_parser:
-            set_rewrite_rules(parser.banned_values_parser, rewrite_rules)
-
-    elif isinstance(parser, LiteralParser):
-        pass
-
-    else:  # pragma: nocover
-        raise NotImplementedError
 
 
 def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
@@ -257,9 +249,6 @@ def parse_generic(
 ) -> Tree:
     symbols_enum = _check_rewrite_rules(rewrite_rules)
 
-    for parser in rewrite_rules.values():
-        set_rewrite_rules(parser, rewrite_rules)
-
     root_symbol = symbols_enum[root_token]
 
     tree = rewrite_rules[root_symbol]
@@ -269,7 +258,7 @@ def parse_generic(
         tree.symbol_type = root_symbol
 
     try:
-        parsed: Optional[Tree] = tree.parse(code, 0)
+        parsed: Optional[Tree] = tree.parse(code, 0, rewrite_rules)
 
         assert parsed
         parsed.symbol_type = root_symbol

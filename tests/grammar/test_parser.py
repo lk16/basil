@@ -53,4 +53,5 @@ def test_parser_not_stale() -> None:
     parser_path = Path("parser/grammar/parser.py")
 
     parser_code = generate_parser(grammar_path)
-    assert not check_parser_staleness(parser_code, parser_path)
+    if check_parser_staleness(parser_code, parser_path):
+        assert False, f"Parser at {parser_path} is stale."

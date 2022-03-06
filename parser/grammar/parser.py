@@ -4,6 +4,7 @@
 
 # flake8: noqa
 # fmt: off
+# nopycln: file
 
 from enum import IntEnum, auto
 from parser.parser import (
@@ -17,7 +18,7 @@ from parser.parser import (
     parse_generic,
 )
 from parser.tree import Tree, prune_by_symbol_types
-from typing import Dict, Final, Set
+from typing import Dict, Final, Optional, Set
 
 
 class SymbolType(IntEnum):

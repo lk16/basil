@@ -294,6 +294,11 @@ def test_regex_parser(code: str, expected_match: bool) -> None:
         assert expected_match
 
 
+def test_regex_parser_() -> None:
+    parser = RegexBasedParser("ab*", LiteralParser("abb"))
+    parser.parse("abbb", 0, {})
+
+
 @pytest.mark.parametrize(
     ["offset", "expected_line_number", "expected_column_number", "expected_line"],
     [

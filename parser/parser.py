@@ -75,11 +75,14 @@ class RegexBasedParser(Parser):
 
         if self.banned_values_parser:
             try:
-                self.banned_values_parser.parse(code, offset, rewrite_rules)
+                banned_values_tree = self.banned_values_parser.parse(
+                    code, offset, rewrite_rules
+                )
             except InternalParseError:
                 pass
             else:
-                raise InternalParseError(offset, self.symbol_type)
+                if banned_values_tree.symbol_length >= len(match.group(0)):
+                    raise InternalParseError(offset, self.symbol_type)
 
         return Tree(offset, len(match.group(0)), self.symbol_type, [])
 

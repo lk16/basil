@@ -9,7 +9,6 @@ from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
     LiteralParser,
-    OptionalParser,
     OrParser,
     Parser,
     RegexBasedParser,
@@ -63,7 +62,11 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
     ),
     SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
     SymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
-        SymbolParser(SymbolType.TOKEN_EXPRESSION),
+        OrParser(
+            SymbolParser(SymbolType.TOKEN_EXPRESSION),
+            SymbolParser(SymbolType.CONJUNCTION_EXPRESSION),
+            SymbolParser(SymbolType.BRACKET_EXPRESSION),
+        ),
         RepeatParser(
             ConcatenationParser(
                 SymbolParser(SymbolType.WHITESPACE),
@@ -113,15 +116,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
         SymbolParser(SymbolType.TOKEN_EXPRESSION),
         SymbolParser(SymbolType.CONCATENATION_EXPRESSION),
         SymbolParser(SymbolType.CONJUNCTION_EXPRESSION),
-        ConcatenationParser(
-            SymbolParser(SymbolType.BRACKET_EXPRESSION),
-            OptionalParser(
-                ConcatenationParser(
-                    SymbolParser(SymbolType.WHITESPACE),
-                    SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-                )
-            ),
-        ),
+        SymbolParser(SymbolType.BRACKET_EXPRESSION),
     ),
     SymbolType.TOKEN_DEFINITION_LINE: ConcatenationParser(
         SymbolParser(SymbolType.TOKEN_NAME),

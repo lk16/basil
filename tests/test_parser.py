@@ -245,7 +245,7 @@ def test_or_parser_longest() -> None:
 def test_regex_parser_forbidden() -> None:
 
     rewrite_rules: Dict[IntEnum, Parser] = {
-        SymbolsForTesting.ROOT: RegexBasedParser("AAB*", forbidden=["AA"]),
+        SymbolsForTesting.ROOT: RegexBasedParser("AAB*", forbidden=LiteralParser("AA")),
         SymbolsForTesting.A: LiteralParser("A"),
         SymbolsForTesting.B: LiteralParser("B"),
         SymbolsForTesting.C: LiteralParser("C"),

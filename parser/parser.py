@@ -51,7 +51,7 @@ class OrParser(Parser):
 
 
 class RegexBasedParser(Parser):
-    def __init__(self, regex: str, forbidden: List[str] = []):
+    def __init__(self, regex: str, forbidden: Optional[Parser] = None):
         if regex.startswith("^"):
             raise ValueError(
                 "Regex should not start with a caret '^' character"
@@ -59,7 +59,7 @@ class RegexBasedParser(Parser):
             )
 
         self.regex = re.compile(f"^{regex}")
-        self.forbidden_matches = set(forbidden)
+        self.banned_values_parser = forbidden
 
     def parse(self, code: str, offset: int) -> Tree:
         match = self.regex.match(code[offset:])
@@ -67,8 +67,13 @@ class RegexBasedParser(Parser):
         if not match:
             raise InternalParseError(offset, self.symbol_type)
 
-        if match.group(0) in self.forbidden_matches:
-            raise InternalParseError(offset, self.symbol_type)
+        if self.banned_values_parser:
+            try:
+                self.banned_values_parser.parse(code, offset)
+            except InternalParseError:
+                pass
+            else:
+                raise InternalParseError(offset, self.symbol_type)
 
         return Tree(offset, len(match.group(0)), self.symbol_type, [])
 
@@ -186,7 +191,11 @@ def set_rewrite_rules(parser: Parser, rewrite_rules: Dict[IntEnum, Parser]) -> N
     elif isinstance(parser, (OptionalParser, RepeatParser)):
         set_rewrite_rules(parser.child, rewrite_rules)
 
-    elif isinstance(parser, (RegexBasedParser, LiteralParser)):
+    elif isinstance(parser, RegexBasedParser):
+        if parser.banned_values_parser:
+            set_rewrite_rules(parser.banned_values_parser, rewrite_rules)
+
+    elif isinstance(parser, LiteralParser):
         pass
 
     else:  # pragma: nocover

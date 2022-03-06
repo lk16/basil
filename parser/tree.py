@@ -43,21 +43,27 @@ def prune_zero_length(tree: Optional[Tree]) -> Optional[Tree]:
 
 
 def prune_by_symbol_types(
-    tree: Optional[Tree], symbol_types: Set[IntEnum], *, prune_subtree: bool
+    tree: Optional[Tree], symbol_types: Set[IntEnum], *, prune_hard: bool
 ) -> Optional[Tree]:
     if not tree:
         return None
 
-    if not prune_subtree:
-        return _soft_prune_by_symbol_types(tree, symbol_types)
+    if prune_hard:
+        return _prune_by_symbol_types_hard(tree, symbol_types)
 
+    return _prune_by_symbol_types_soft(tree, symbol_types)
+
+
+def _prune_by_symbol_types_hard(
+    tree: Tree, symbol_types: Set[IntEnum]
+) -> Optional[Tree]:
     def prune_condition(tree: Tree) -> bool:
         return tree.symbol_type in symbol_types
 
     return prune_tree(tree, prune_condition)
 
 
-def _soft_prune_by_symbol_types(
+def _prune_by_symbol_types_soft(
     tree: Tree, symbol_types: Set[IntEnum]
 ) -> Optional[Tree]:
     assert tree.symbol_type not in symbol_types

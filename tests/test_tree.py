@@ -111,7 +111,7 @@ def test_prune_zero_length() -> None:
 
 def test_prune_by_symbol_type() -> None:
     tree = make_tree(s="A", c=[make_tree(c=[make_tree(s="B", c=[make_tree(s="C")])])])
-    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.B}, prune_subtree=True)
+    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.B}, prune_hard=True)
 
     assert pruned_tree
     assert len(pruned_tree.children) == 1
@@ -125,7 +125,7 @@ def test_prune_zero_length_empty() -> None:
 
 
 def test_prune_by_symbol_types_empty() -> None:
-    assert prune_by_symbol_types(None, set(), prune_subtree=True) is None
+    assert prune_by_symbol_types(None, set(), prune_hard=True) is None
 
 
 def test_prune_tree_empty() -> None:
@@ -140,9 +140,7 @@ def test_prune_by_symbol_type_keeping_subtree() -> None:
     tree = make_tree(
         c=[make_tree(s="A"), make_tree(c=[make_tree(s="B")]), make_tree(s="C")]
     )
-    pruned_tree = prune_by_symbol_types(
-        tree, {SymbolsForTesting.A}, prune_subtree=False
-    )
+    pruned_tree = prune_by_symbol_types(tree, {SymbolsForTesting.A}, prune_hard=False)
 
     expected_pruned_tree = make_tree(
         c=[make_tree(c=[make_tree(s="B")]), make_tree(s="C")]

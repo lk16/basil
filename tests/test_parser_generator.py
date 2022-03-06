@@ -31,7 +31,7 @@ def make_tree(
         (
             make_tree(s="REGEX_EXPRESSION", c=[make_tree(o=6, l=8)]),
             'regex("[0-9]+")',
-            'RegexBasedParser("[0-9]+", forbidden=[])',
+            'RegexBasedParser("[0-9]+")',
         ),
         (
             make_tree(
@@ -149,5 +149,5 @@ def make_tree(
 def test_tree_to_python_parser_expression(
     tree: Tree, code: str, expected_python_expr: str
 ) -> None:
-    python_expr = tree_to_python_parser_expression(tree, code, [])
+    python_expr = tree_to_python_parser_expression(tree, code, None)
     assert python_expr == expected_python_expr

@@ -251,13 +251,14 @@ def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
 def parse_generic(
     rewrite_rules: Dict[IntEnum, Parser],
     code: str,
+    root_token: str = "ROOT",
 ) -> Tree:
     symbols_enum = _check_rewrite_rules(rewrite_rules)
 
     for parser in rewrite_rules.values():
         set_rewrite_rules(parser, rewrite_rules)
 
-    root_symbol = symbols_enum["ROOT"]
+    root_symbol = symbols_enum[root_token]
 
     tree = rewrite_rules[root_symbol]
 

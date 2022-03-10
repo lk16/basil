@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 
 class TokenizeError(Exception):
@@ -15,7 +15,7 @@ class TokenizeError(Exception):
 class TokenType(IntEnum):
     BRACKET_CLOSE_AT_LEAST_ONCE = auto()
     BRACKET_CLOSE_OPTIONAL = auto()
-    BRACKET_CLOSE_REGULAR = auto()
+    BRACKET_CLOSE = auto()
     BRACKET_CLOSE_REPEAT = auto()
     BRACKET_CLOSE_REPEAT_RANGE = auto()
     BRACKET_OPEN = auto()
@@ -38,7 +38,7 @@ STRINGS: List[Tuple[TokenType, str]] = sorted(
     [
         (TokenType.BRACKET_CLOSE_AT_LEAST_ONCE, ")+"),
         (TokenType.BRACKET_CLOSE_OPTIONAL, ")?"),
-        (TokenType.BRACKET_CLOSE_REGULAR, ")"),
+        (TokenType.BRACKET_CLOSE, ")"),
         (TokenType.BRACKET_CLOSE_REPEAT, ")*"),
         (TokenType.BRACKET_CLOSE_REPEAT_RANGE, "({"),
         (TokenType.BRACKET_OPEN, "("),
@@ -62,6 +62,11 @@ REGEXES: Dict[TokenType, re.Pattern[str]] = {
     TokenType.TOKEN_NAME: re.compile("^[A-Z_]+"),
 }
 
+PRUNED_TOKEN_TYPES: Set[TokenType] = {
+    TokenType.COMMENT,
+    TokenType.WHITESPACE,
+}
+
 
 @dataclass
 class Token:
@@ -69,13 +74,135 @@ class Token:
     offset: int
     length: int
 
+    def value(self, code: str) -> str:
+        return code[self.offset : self.offset + self.length]
+
+
+@dataclass
+class Tree:
+    ...
+
+
+@dataclass
+class Terminal(Tree):
+    token_type: TokenType
+
+
+@dataclass
+class NonTerminal(Tree):
+    name: str
+
+
+@dataclass
+class Concatenation(Tree):
+    children: List[Tree]
+
+
+@dataclass
+class Conjunction(Tree):
+    children: List[Tree]
+
+
+@dataclass
+class Repeat(Tree):
+    child: Tree
+
+
+@dataclass
+class AtLeastOnce(Tree):
+    child: Tree
+
+
+@dataclass
+class RuleOptional(Tree):
+    child: Tree
+
+
+NON_TERMINALS: Dict[str, Tree] = {
+    "ROOT": Repeat(NonTerminal("TOKEN_DEFINITION")),
+    "TOKEN_DEFINITION": Concatenation(
+        [
+            Repeat(NonTerminal("DECORATOR")),
+            NonTerminal("TOKEN_NAME"),
+            Terminal(TokenType.EQUALS),
+            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
+            NonTerminal("TOKEN_DEFINITION_END"),
+        ]
+    ),
+    "DECORATOR": Concatenation(
+        [Terminal(TokenType.DECORATOR_MARKER), NonTerminal("DECORATOR_VALUE")]
+    ),
+    "DECORATOR_VALUE": Conjunction(
+        [Terminal(TokenType.DECORATOR_PRUNED), Terminal(TokenType.DECORATOR_TOKEN)]
+    ),
+    "CONCATENATION_EXPRESSION": Concatenation(
+        [
+            Conjunction(
+                [
+                    NonTerminal("TOKEN_EXPRESSION"),
+                    NonTerminal("CONJUNCTION_EXRPESSION"),
+                    NonTerminal("BRACKET_EXPRESSION"),
+                ]
+            ),
+            AtLeastOnce(NonTerminal("TOKEN_COMPOUND_EXPRESSION")),
+        ]
+    ),
+    "BRACKET_EXPRESSION": Concatenation(
+        [
+            Terminal(TokenType.BRACKET_OPEN),
+            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
+            NonTerminal("BRACKET_EXPRESSION_END"),
+        ]
+    ),
+    "BRACKET_EXPRESSION_END": Conjunction(
+        [
+            Terminal(TokenType.BRACKET_CLOSE),
+            Terminal(TokenType.BRACKET_CLOSE_REPEAT),
+            Terminal(TokenType.BRACKET_CLOSE_AT_LEAST_ONCE),
+            Terminal(TokenType.BRACKET_CLOSE_OPTIONAL),
+        ]
+    ),
+    "TOKEN_COMPOUND_EXPRESSION": Conjunction(
+        [
+            NonTerminal("TOKEN_EXPRESSION"),
+            NonTerminal("CONCATENATION_EXPRESSION"),
+            NonTerminal("CONJUNCTION_EXPRESSION"),
+            NonTerminal("BRACKET_EXPRESSION"),
+        ]
+    ),
+    "CONJUNCTION_EXPRESSION": Concatenation(
+        [
+            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
+            Terminal(TokenType.VERTICAL_BAR),
+            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
+        ]
+    ),
+    "TOKEN_EXPRESSION": Conjunction(
+        [
+            NonTerminal("LITERAL_EXPRESSION"),
+            NonTerminal("TOKEN_NAME"),
+            NonTerminal("REGEX_EXPRESSION"),
+        ]
+    ),
+    "REGEX_EXPRESSION": Concatenation(
+        [
+            Terminal(TokenType.REGEX_START),
+            NonTerminal("LITERAL_EXPRESSION"),
+            Terminal(TokenType.BRACKET_CLOSE),
+        ]
+    ),
+}
+
 
 def main() -> None:
     code = Path("parser/grammar/grammar.txt").read_text()
-    tokens = get_tokens(code)
+    pruned_token_types = PRUNED_TOKEN_TYPES
+    tokens = get_tokens(code, pruned_token_types)
+    non_terminals = NON_TERMINALS
+    grammar_rules = get_grammar_rules(non_terminals)
 
-    for token in tokens:
-        print(token)
+    _ = grammar_rules
+    _ = tokens
 
 
 def get_token(code: str, offset: int) -> Token:
@@ -91,7 +218,7 @@ def get_token(code: str, offset: int) -> Token:
     raise TokenizeError(code, offset)
 
 
-def get_tokens(code: str) -> List[Token]:
+def get_tokens(code: str, pruned_token_types: Set[TokenType]) -> List[Token]:
     offset = 0
     tokens: List[Token] = []
 
@@ -102,7 +229,14 @@ def get_tokens(code: str) -> List[Token]:
             # TODO handle
             raise e
 
-        tokens.append(token)
+        if token.type not in pruned_token_types:
+            tokens.append(token)
+
         offset += token.length
 
     return tokens
+
+
+def get_grammar_rules(non_terminals: Dict[str, Tree]) -> List[Any]:
+    # TODO implement and update return type
+    raise NotImplementedError

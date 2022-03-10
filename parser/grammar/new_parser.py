@@ -2,7 +2,14 @@ import re
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
+
+
+class TokenizeError(Exception):
+    def __init__(self, code: str, offset: int) -> None:
+        self.code = code
+        self.offset = offset
+        super().__init__(f"Tokenizer failed at offset {offset}")
 
 
 class TokenType(IntEnum):
@@ -27,22 +34,25 @@ class TokenType(IntEnum):
     TOKEN_NAME = auto()
 
 
-STRINGS: List[Tuple[TokenType, str]] = [
-    (TokenType.BRACKET_CLOSE_AT_LEAST_ONCE, ")+"),
-    (TokenType.BRACKET_CLOSE_OPTIONAL, ")?"),
-    (TokenType.BRACKET_CLOSE_REGULAR, ")"),
-    (TokenType.BRACKET_CLOSE_REPEAT, ")*"),
-    (TokenType.BRACKET_CLOSE_REPEAT_RANGE, "({"),
-    (TokenType.BRACKET_OPEN, "("),
-    (TokenType.DECORATOR_MARKER, "@"),
-    (TokenType.DECORATOR_PRUNED, "pruned"),
-    (TokenType.DECORATOR_TOKEN, "terminal"),
-    (TokenType.EQUALS, "="),
-    (TokenType.REGEX_START, "regex("),
-    (TokenType.REPEAT_RANGE_END, ",...}"),
-    (TokenType.TOKEN_DEFINITION_END, "."),
-    (TokenType.VERTICAL_BAR, "|"),
-]
+STRINGS: List[Tuple[TokenType, str]] = sorted(
+    [
+        (TokenType.BRACKET_CLOSE_AT_LEAST_ONCE, ")+"),
+        (TokenType.BRACKET_CLOSE_OPTIONAL, ")?"),
+        (TokenType.BRACKET_CLOSE_REGULAR, ")"),
+        (TokenType.BRACKET_CLOSE_REPEAT, ")*"),
+        (TokenType.BRACKET_CLOSE_REPEAT_RANGE, "({"),
+        (TokenType.BRACKET_OPEN, "("),
+        (TokenType.DECORATOR_MARKER, "@"),
+        (TokenType.DECORATOR_PRUNED, "pruned"),
+        (TokenType.DECORATOR_TOKEN, "terminal"),
+        (TokenType.EQUALS, "="),
+        (TokenType.REGEX_START, "regex("),
+        (TokenType.REPEAT_RANGE_END, ",...}"),
+        (TokenType.TOKEN_DEFINITION_END, "."),
+        (TokenType.VERTICAL_BAR, "|"),
+    ],
+    key=lambda x: -len(x[1]),
+)
 
 REGEXES: Dict[TokenType, re.Pattern[str]] = {
     TokenType.COMMENT: re.compile("^//[^\n]*"),
@@ -68,29 +78,29 @@ def main() -> None:
         print(token)
 
 
+def get_token(code: str, offset: int) -> Token:
+    for token_type, string in STRINGS:
+        if code[offset:].startswith(string):
+            return Token(token_type, offset, len(string))
+
+    for token_type, regex in REGEXES.items():
+        match = regex.match(code[offset:])
+        if match and len(match.group(0)) > 0:
+            return Token(token_type, offset, len(match.group(0)))
+
+    raise TokenizeError(code, offset)
+
+
 def get_tokens(code: str) -> List[Token]:
     offset = 0
-    sorted_strings = sorted(STRINGS, key=lambda x: -len(x[1]))
     tokens: List[Token] = []
 
     while offset < len(code):
-        token: Optional[Token] = None
-
-        for token_type, string in sorted_strings:
-            if code[offset:].startswith(string):
-                token = Token(token_type, offset, len(string))
-                break
-
-        if not token:
-            for token_type, regex in REGEXES.items():
-                match = regex.match(code[offset:])
-                if match and len(match.group(0)) > 0:
-                    token = Token(token_type, offset, len(match.group(0)))
-                    break
-
-        if not token:
-            print(f'No match found at offset {offset}: "{code[offset : offset + 20]}"')
-            exit()
+        try:
+            token = get_token(code, offset)
+        except TokenizeError as e:
+            # TODO handle
+            raise e
 
         tokens.append(token)
         offset += token.length

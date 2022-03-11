@@ -93,6 +93,7 @@ REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
     SymbolType.DECORATOR_VALUE: OrParser(
         LiteralParser("prune hard"),
         LiteralParser("prune soft"),
+        LiteralParser("token"),
         ConcatenationParser(
             LiteralParser("forbidden"),
             SymbolParser(SymbolType.WHITESPACE),

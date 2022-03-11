@@ -2,6 +2,29 @@
 
 // Since this grammar is parsed by a parser generated from itself, it effectively parses itself!
 
+@ token
+@ prune hard
+COMMENT_LINE = regex("//[^\n]*\n")
+
+@ token
+@ prune hard
+WHITESPACE_LINE = regex(" *\n")
+
+@ token
+@ prune hard
+WHITESPACE = regex(" *")
+
+@ token
+TOKEN_NAME = regex("[A-Z_]+")
+
+@ token
+INTEGER = regex("[0-9]+")
+
+@ token
+LITERAL_EXPRESSION = regex("\"([^\\\\]|\\\\(\"|n|\\\\))*?\"")
+
+// ---
+
 ROOT = (LINE)*
 
 @ prune soft
@@ -9,17 +32,9 @@ LINE = COMMENT_LINE | WHITESPACE_LINE | TOKEN_DEFINITION_LINE | DECORATOR_LINE
 
 DECORATOR_LINE = "@" WHITESPACE DECORATOR_VALUE WHITESPACE "\n"
 
-DECORATOR_VALUE = "prune hard" | "prune soft" | ("forbidden" WHITESPACE TOKEN_COMPOUND_EXPRESSION)
-
-@ prune hard
-COMMENT_LINE = regex("//[^\n]*\n")
-
-@ prune hard
-WHITESPACE_LINE = regex(" *\n")
+DECORATOR_VALUE = "prune hard" | "prune soft" | "token"
 
 TOKEN_DEFINITION_LINE = TOKEN_NAME WHITESPACE "=" WHITESPACE TOKEN_COMPOUND_EXPRESSION WHITESPACE "\n"
-
-TOKEN_NAME = regex("[A-Z_]+")
 
 CONCATENATION_EXPRESSION = (TOKEN_EXPRESSION | CONJUNCTION_EXPRESSION | BRACKET_EXPRESSION) (WHITESPACE TOKEN_COMPOUND_EXPRESSION)+
 
@@ -28,8 +43,6 @@ BRACKET_EXPRESSION = "(" WHITESPACE TOKEN_COMPOUND_EXPRESSION WHITESPACE BRACKET
 BRACKET_EXPRESSION_END = ")" | ")+" | ")*" | ")?" | BRACKET_EXPRESSION_REPEAT_RANGE
 
 BRACKET_EXPRESSION_REPEAT_RANGE = "){" INTEGER ",...}"
-
-INTEGER = regex("[0-9]+")
 
 @ prune soft
 TOKEN_COMPOUND_EXPRESSION = TOKEN_EXPRESSION | CONCATENATION_EXPRESSION | CONJUNCTION_EXPRESSION | BRACKET_EXPRESSION
@@ -40,8 +53,3 @@ CONJUNCTION_EXPRESSION = TOKEN_EXPRESSION WHITESPACE "|" WHITESPACE TOKEN_COMPOU
 TOKEN_EXPRESSION = LITERAL_EXPRESSION | TOKEN_NAME | REGEX_EXPRESSION
 
 REGEX_EXPRESSION = "regex(" LITERAL_EXPRESSION ")"
-
-@ prune hard
-WHITESPACE = regex(" *")
-
-LITERAL_EXPRESSION = regex("\"([^\\\\]|\\\\(\"|n|\\\\))*?\"")

@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 
 class TokenizeError(Exception):
@@ -12,7 +12,7 @@ class TokenizeError(Exception):
         super().__init__(f"Tokenizer failed at offset {offset}")
 
 
-class TokenType(IntEnum):
+class Terminal(IntEnum):
     BRACKET_CLOSE_AT_LEAST_ONCE = auto()
     BRACKET_CLOSE_OPTIONAL = auto()
     BRACKET_CLOSE = auto()
@@ -34,43 +34,57 @@ class TokenType(IntEnum):
     TOKEN_NAME = auto()
 
 
-STRINGS: List[Tuple[TokenType, str]] = sorted(
+class NonTerminal(IntEnum):
+    ROOT = auto()
+    TOKEN_DEFINITION = auto()
+    DECORATOR = auto()
+    DECORATOR_VALUE = auto()
+    CONCATENATION_EXPRESSION = auto()
+    BRACKET_EXPRESSION = auto()
+    BRACKET_EXPRESSION_END = auto()
+    TOKEN_COMPOUND_EXPRESSION = auto()
+    CONJUNCTION_EXPRESSION = auto()
+    TOKEN_EXPRESSION = auto()
+    REGEX_EXPRESSION = auto()
+
+
+STRINGS: List[Tuple[Terminal, str]] = sorted(
     [
-        (TokenType.BRACKET_CLOSE_AT_LEAST_ONCE, ")+"),
-        (TokenType.BRACKET_CLOSE_OPTIONAL, ")?"),
-        (TokenType.BRACKET_CLOSE, ")"),
-        (TokenType.BRACKET_CLOSE_REPEAT, ")*"),
-        (TokenType.BRACKET_CLOSE_REPEAT_RANGE, "({"),
-        (TokenType.BRACKET_OPEN, "("),
-        (TokenType.DECORATOR_MARKER, "@"),
-        (TokenType.DECORATOR_PRUNED, "pruned"),
-        (TokenType.DECORATOR_TOKEN, "terminal"),
-        (TokenType.EQUALS, "="),
-        (TokenType.REGEX_START, "regex("),
-        (TokenType.REPEAT_RANGE_END, ",...}"),
-        (TokenType.TOKEN_DEFINITION_END, "."),
-        (TokenType.VERTICAL_BAR, "|"),
+        (Terminal.BRACKET_CLOSE_AT_LEAST_ONCE, ")+"),
+        (Terminal.BRACKET_CLOSE_OPTIONAL, ")?"),
+        (Terminal.BRACKET_CLOSE, ")"),
+        (Terminal.BRACKET_CLOSE_REPEAT, ")*"),
+        (Terminal.BRACKET_CLOSE_REPEAT_RANGE, "({"),
+        (Terminal.BRACKET_OPEN, "("),
+        (Terminal.DECORATOR_MARKER, "@"),
+        (Terminal.DECORATOR_PRUNED, "pruned"),
+        (Terminal.DECORATOR_TOKEN, "terminal"),
+        (Terminal.EQUALS, "="),
+        (Terminal.REGEX_START, "regex("),
+        (Terminal.REPEAT_RANGE_END, ",...}"),
+        (Terminal.TOKEN_DEFINITION_END, "."),
+        (Terminal.VERTICAL_BAR, "|"),
     ],
     key=lambda x: -len(x[1]),
 )
 
-REGEXES: Dict[TokenType, re.Pattern[str]] = {
-    TokenType.COMMENT: re.compile("^//[^\n]*"),
-    TokenType.LITERAL_EXPRESSION: re.compile('^"([^\\\\]|\\\\("|n|\\\\))*?"'),
-    TokenType.WHITESPACE: re.compile("^[ \n]*"),
-    TokenType.INTEGER: re.compile("^[0-9]+"),
-    TokenType.TOKEN_NAME: re.compile("^[A-Z_]+"),
+REGEXES: Dict[Terminal, re.Pattern[str]] = {
+    Terminal.COMMENT: re.compile("^//[^\n]*"),
+    Terminal.LITERAL_EXPRESSION: re.compile('^"([^\\\\]|\\\\("|n|\\\\))*?"'),
+    Terminal.WHITESPACE: re.compile("^[ \n]*"),
+    Terminal.INTEGER: re.compile("^[0-9]+"),
+    Terminal.TOKEN_NAME: re.compile("^[A-Z_]+"),
 }
 
-PRUNED_TOKEN_TYPES: Set[TokenType] = {
-    TokenType.COMMENT,
-    TokenType.WHITESPACE,
+PRUNED_TOKEN_TYPES: Set[Terminal] = {
+    Terminal.COMMENT,
+    Terminal.WHITESPACE,
 }
 
 
 @dataclass
 class Token:
-    type: TokenType
+    type: Terminal
     offset: int
     length: int
 
@@ -83,112 +97,111 @@ class Tree:
     ...
 
 
-@dataclass
-class Terminal(Tree):
-    token_type: TokenType
+class Epsilon:
+    # Used to indicate no token is expected or consumed
+    def __repr__(self) -> str:
+        return "Epsilon()"
 
 
-@dataclass
-class NonTerminal(Tree):
-    name: str
+TreeItem = Tree | NonTerminal | Terminal | Epsilon
 
 
 @dataclass
 class Concatenation(Tree):
-    children: List[Tree]
+    children: List[TreeItem]
 
 
 @dataclass
 class Conjunction(Tree):
-    children: List[Tree]
+    children: List[TreeItem]
 
 
 @dataclass
 class Repeat(Tree):
-    child: Tree
+    child: TreeItem
 
 
 @dataclass
 class AtLeastOnce(Tree):
-    child: Tree
+    child: TreeItem
 
 
 @dataclass
 class RuleOptional(Tree):
-    child: Tree
+    child: TreeItem
 
 
-NON_TERMINALS: Dict[str, Tree] = {
-    "ROOT": Repeat(NonTerminal("TOKEN_DEFINITION")),
-    "TOKEN_DEFINITION": Concatenation(
+NON_TERMINALS: Dict[NonTerminal, Tree] = {
+    NonTerminal.ROOT: Repeat(NonTerminal.TOKEN_DEFINITION),
+    NonTerminal.TOKEN_DEFINITION: Concatenation(
         [
-            Repeat(NonTerminal("DECORATOR")),
-            NonTerminal("TOKEN_NAME"),
-            Terminal(TokenType.EQUALS),
-            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
-            NonTerminal("TOKEN_DEFINITION_END"),
+            Repeat(NonTerminal.DECORATOR),
+            Terminal.TOKEN_NAME,
+            Terminal.EQUALS,
+            NonTerminal.TOKEN_COMPOUND_EXPRESSION,
+            Terminal.TOKEN_DEFINITION_END,
         ]
     ),
-    "DECORATOR": Concatenation(
-        [Terminal(TokenType.DECORATOR_MARKER), NonTerminal("DECORATOR_VALUE")]
+    NonTerminal.DECORATOR: Concatenation(
+        [Terminal.DECORATOR_MARKER, NonTerminal.DECORATOR_VALUE]
     ),
-    "DECORATOR_VALUE": Conjunction(
-        [Terminal(TokenType.DECORATOR_PRUNED), Terminal(TokenType.DECORATOR_TOKEN)]
+    NonTerminal.DECORATOR_VALUE: Conjunction(
+        [Terminal.DECORATOR_PRUNED, Terminal.DECORATOR_TOKEN]
     ),
-    "CONCATENATION_EXPRESSION": Concatenation(
+    NonTerminal.CONCATENATION_EXPRESSION: Concatenation(
         [
             Conjunction(
                 [
-                    NonTerminal("TOKEN_EXPRESSION"),
-                    NonTerminal("CONJUNCTION_EXRPESSION"),
-                    NonTerminal("BRACKET_EXPRESSION"),
+                    NonTerminal.TOKEN_EXPRESSION,
+                    NonTerminal.CONJUNCTION_EXPRESSION,
+                    NonTerminal.BRACKET_EXPRESSION,
                 ]
             ),
-            AtLeastOnce(NonTerminal("TOKEN_COMPOUND_EXPRESSION")),
+            AtLeastOnce(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
         ]
     ),
-    "BRACKET_EXPRESSION": Concatenation(
+    NonTerminal.BRACKET_EXPRESSION: Concatenation(
         [
-            Terminal(TokenType.BRACKET_OPEN),
-            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
-            NonTerminal("BRACKET_EXPRESSION_END"),
+            Terminal.BRACKET_OPEN,
+            NonTerminal.TOKEN_COMPOUND_EXPRESSION,
+            NonTerminal.BRACKET_EXPRESSION_END,
         ]
     ),
-    "BRACKET_EXPRESSION_END": Conjunction(
+    NonTerminal.BRACKET_EXPRESSION_END: Conjunction(
         [
-            Terminal(TokenType.BRACKET_CLOSE),
-            Terminal(TokenType.BRACKET_CLOSE_REPEAT),
-            Terminal(TokenType.BRACKET_CLOSE_AT_LEAST_ONCE),
-            Terminal(TokenType.BRACKET_CLOSE_OPTIONAL),
+            Terminal.BRACKET_CLOSE,
+            Terminal.BRACKET_CLOSE_REPEAT,
+            Terminal.BRACKET_CLOSE_AT_LEAST_ONCE,
+            Terminal.BRACKET_CLOSE_OPTIONAL,
         ]
     ),
-    "TOKEN_COMPOUND_EXPRESSION": Conjunction(
+    NonTerminal.TOKEN_COMPOUND_EXPRESSION: Conjunction(
         [
-            NonTerminal("TOKEN_EXPRESSION"),
-            NonTerminal("CONCATENATION_EXPRESSION"),
-            NonTerminal("CONJUNCTION_EXPRESSION"),
-            NonTerminal("BRACKET_EXPRESSION"),
+            NonTerminal.TOKEN_EXPRESSION,
+            NonTerminal.CONCATENATION_EXPRESSION,
+            NonTerminal.CONJUNCTION_EXPRESSION,
+            NonTerminal.BRACKET_EXPRESSION,
         ]
     ),
-    "CONJUNCTION_EXPRESSION": Concatenation(
+    NonTerminal.CONJUNCTION_EXPRESSION: Concatenation(
         [
-            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
-            Terminal(TokenType.VERTICAL_BAR),
-            NonTerminal("TOKEN_COMPOUND_EXPRESSION"),
+            NonTerminal.TOKEN_COMPOUND_EXPRESSION,
+            Terminal.VERTICAL_BAR,
+            NonTerminal.TOKEN_COMPOUND_EXPRESSION,
         ]
     ),
-    "TOKEN_EXPRESSION": Conjunction(
+    NonTerminal.TOKEN_EXPRESSION: Conjunction(
         [
-            NonTerminal("LITERAL_EXPRESSION"),
-            NonTerminal("TOKEN_NAME"),
-            NonTerminal("REGEX_EXPRESSION"),
+            Terminal.LITERAL_EXPRESSION,
+            Terminal.TOKEN_NAME,
+            NonTerminal.REGEX_EXPRESSION,
         ]
     ),
-    "REGEX_EXPRESSION": Concatenation(
+    NonTerminal.REGEX_EXPRESSION: Concatenation(
         [
-            Terminal(TokenType.REGEX_START),
-            NonTerminal("LITERAL_EXPRESSION"),
-            Terminal(TokenType.BRACKET_CLOSE),
+            Terminal.REGEX_START,
+            Terminal.LITERAL_EXPRESSION,
+            Terminal.BRACKET_CLOSE,
         ]
     ),
 }
@@ -199,9 +212,9 @@ def main() -> None:
     pruned_token_types = PRUNED_TOKEN_TYPES
     tokens = get_tokens(code, pruned_token_types)
     non_terminals = NON_TERMINALS
-    grammar_rules = get_grammar_rules(non_terminals)
+    parse_table = get_parse_table(non_terminals)
 
-    _ = grammar_rules
+    _ = parse_table
     _ = tokens
 
 
@@ -218,7 +231,7 @@ def get_token(code: str, offset: int) -> Token:
     raise TokenizeError(code, offset)
 
 
-def get_tokens(code: str, pruned_token_types: Set[TokenType]) -> List[Token]:
+def get_tokens(code: str, pruned_token_types: Set[Terminal]) -> List[Token]:
     offset = 0
     tokens: List[Token] = []
 
@@ -237,6 +250,31 @@ def get_tokens(code: str, pruned_token_types: Set[TokenType]) -> List[Token]:
     return tokens
 
 
-def get_grammar_rules(non_terminals: Dict[str, Tree]) -> List[Any]:
-    # TODO implement and update return type
+def get_firsts(
+    tree: TreeItem, non_terminals: Dict[NonTerminal, Tree]
+) -> Set[Terminal | Epsilon]:
+    breakpoint()
+
+    if isinstance(tree, Concatenation):
+        return get_firsts(tree.children[0], non_terminals)
+    if isinstance(tree, Conjunction):
+        firsts: Set[Terminal | Epsilon] = set()
+        for child in tree.children:
+            firsts |= get_firsts(child, non_terminals)
+        return firsts
+    if isinstance(tree, Repeat):
+        return {tree.child, Epsilon()}
+    if isinstance(tree, Epsilon):
+        return {Epsilon()}
+    if isinstance(tree, Terminal):
+        return {Terminal}
+    if isinstance(tree, NonTerminal):
+        return get_firsts(non_terminals[tree], non_terminals)
+    raise NotImplementedError
+
+
+def get_parse_table(
+    non_terminals: Dict[NonTerminal, Tree]
+) -> Dict[Tuple[NonTerminal, Terminal], List[Terminal]]:
+
     raise NotImplementedError

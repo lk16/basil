@@ -158,8 +158,8 @@ class ConcatenationParser(Parser):
 
 
 class TerminalParser(Parser):
-    def __init__(self, symbol_type: IntEnum):
-        self.symbol_type = symbol_type
+    def __init__(self, token_type: IntEnum):
+        self.token_type = token_type
 
     def parse(
         self,
@@ -167,12 +167,17 @@ class TerminalParser(Parser):
         offset: int,
         non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
-        raise NotImplementedError
+        next_token = tokens[offset]
+
+        if next_token.type != self.token_type:
+            raise InternalParseError(offset, self.symbol_type)
+
+        return Tree(offset, next_token.length, self.symbol_type, [])
 
 
 class NonTerminalParser(Parser):
-    def __init__(self, symbol_type: IntEnum):
-        self.symbol_type = symbol_type
+    def __init__(self, token_type: IntEnum):
+        self.token_type = token_type
 
     def parse(
         self,
@@ -180,20 +185,9 @@ class NonTerminalParser(Parser):
         offset: int,
         non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
-        raise NotImplementedError
-
-
-class LiteralParser(Parser):
-    def __init__(self, literal: str):
-        self.literal = literal
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        raise NotImplementedError
+        return non_terminal_rules[self.token_type].parse(
+            tokens, offset, non_terminal_rules
+        )
 
 
 class RegexTokenizer:

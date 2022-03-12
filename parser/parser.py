@@ -10,7 +10,14 @@ from parser.exceptions import (
     UnhandledSymbolType,
 )
 from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
-from typing import Dict, List, Optional, Set, Type
+from typing import Dict, List, Optional, Set, Tuple, Type
+
+
+@dataclass
+class Token:
+    type: IntEnum
+    offset: int
+    length: int
 
 
 @dataclass
@@ -18,7 +25,10 @@ class Parser:
     symbol_type: Optional[IntEnum] = None
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:  # pragma: nocover
         raise NotImplementedError
 
@@ -28,13 +38,16 @@ class OrParser(Parser):
         self.children = list(args)
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
         longest_parsed: Optional[Tree] = None
 
         for child in self.children:
             try:
-                parsed = child.parse(code, offset, rewrite_rules)
+                parsed = child.parse(tokens, offset, non_terminal_rules)
             except InternalParseError:
                 continue
 
@@ -54,53 +67,23 @@ class OrParser(Parser):
         )
 
 
-class RegexBasedParser(Parser):
-    def __init__(self, regex: str, forbidden: Optional[Parser] = None):
-        if regex.startswith("^"):
-            raise ValueError(
-                "Regex should not start with a caret '^' character"
-                + "it's added in __init__() now."
-            )
-
-        self.regex = re.compile(f"^{regex}")
-        self.banned_values_parser = forbidden
-
-    def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
-    ) -> Tree:
-        match = self.regex.match(code[offset:])
-
-        if not match:
-            raise InternalParseError(offset, self.symbol_type)
-
-        if self.banned_values_parser:
-            try:
-                banned_values_tree = self.banned_values_parser.parse(
-                    code, offset, rewrite_rules
-                )
-            except InternalParseError:
-                pass
-            else:
-                if banned_values_tree.symbol_length >= len(match.group(0)):
-                    raise InternalParseError(offset, self.symbol_type)
-
-        return Tree(offset, len(match.group(0)), self.symbol_type, [])
-
-
 class RepeatParser(Parser):
     def __init__(self, child: Parser, min_repeats: int = 0) -> None:
         self.child = child
         self.min_repeats = min_repeats
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
         sub_trees: List[Tree] = []
         child_offset = offset
 
         while True:
             try:
-                parsed = self.child.parse(code, child_offset, rewrite_rules)
+                parsed = self.child.parse(tokens, child_offset, non_terminal_rules)
             except InternalParseError:
                 break
             else:
@@ -123,14 +106,17 @@ class OptionalParser(Parser):
         self.child = child
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
 
         children: List[Tree] = []
         length = 0
 
         try:
-            parsed = self.child.parse(code, offset, rewrite_rules)
+            parsed = self.child.parse(tokens, offset, non_terminal_rules)
             children = [parsed]
             length = parsed.symbol_length
         except InternalParseError:
@@ -149,14 +135,17 @@ class ConcatenationParser(Parser):
         self.children = list(args)
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
         sub_trees: List[Tree] = []
 
         child_offset = offset
 
         for child in self.children:
-            parsed = child.parse(code, child_offset, rewrite_rules)
+            parsed = child.parse(tokens, child_offset, non_terminal_rules)
             sub_trees.append(parsed)
             child_offset += parsed.symbol_length
 
@@ -168,33 +157,80 @@ class ConcatenationParser(Parser):
         )
 
 
-class SymbolParser(Parser):
-    def __init__(self, symbol_type: IntEnum):
-        self.symbol_type = symbol_type
+class TerminalParser(Parser):
+    def __init__(self, token_type: IntEnum):
+        self.token_type = token_type
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
+        next_token = tokens[offset]
 
-        assert self.symbol_type
+        if next_token.type != self.token_type:
+            raise InternalParseError(offset, self.symbol_type)
 
-        rewritten_expression = rewrite_rules[self.symbol_type]
-        child = rewritten_expression.parse(code, offset, rewrite_rules)
+        return Tree(offset, next_token.length, self.symbol_type, [])
 
-        return Tree(child.symbol_offset, child.symbol_length, self.symbol_type, [child])
+
+class NonTerminalParser(Parser):
+    def __init__(self, token_type: IntEnum):
+        self.token_type = token_type
+
+    def parse(
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
+    ) -> Tree:
+        return non_terminal_rules[self.token_type].parse(
+            tokens, offset, non_terminal_rules
+        )
 
 
 class LiteralParser(Parser):
-    def __init__(self, literal: str):
+    def __init__(self, literal: str) -> None:
         self.literal = literal
 
     def parse(
-        self, code: str, offset: int, rewrite_rules: Dict[IntEnum, "Parser"]
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
-        if not code[offset:].startswith(self.literal):
-            raise InternalParseError(offset, self.symbol_type)
+        non_terminal_enum = type(list(non_terminal_rules.keys())[0])
+        non_terminal_literal_enum_entry = non_terminal_enum[
+            "internal_NON_TERMINAL_LITERAL"
+        ]
+        return non_terminal_rules[non_terminal_literal_enum_entry].parse(
+            tokens, offset, non_terminal_rules
+        )
 
-        return Tree(offset, len(self.literal), self.symbol_type, [])
+
+class RegexTokenizer:
+    def __init__(self, regex: str):
+        if regex.startswith("^"):
+            raise ValueError(
+                "Regex should not start with a caret '^' character"
+                + "it's added in __init__() now."
+            )
+
+        self.regex = re.compile(f"^{regex}")
+
+    def tokenize(self, code: str, offset: int) -> Optional[int]:
+        match = self.regex.match(code[offset:])
+
+        if not match:
+            return None
+
+        match_length = len(match.group(0))
+
+        if match_length == 0:
+            return None
+
+        return match_length
 
 
 def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
@@ -218,7 +254,7 @@ def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
     return ParseError(line_number, column_number, line, expected_symbol_types)
 
 
-def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
+def _check_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
     """
     Checks completeness, inconsistencies.
     Returns the IntEnum subclass type used for all keys
@@ -235,33 +271,54 @@ def _check_rewrite_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
         unexpected_keys = set(rewrite_rules.keys()) - set(symbols_enum)
         raise UnexpectedSymbolType(unexpected_keys)
 
-    try:
-        symbols_enum["ROOT"]
-    except KeyError:
-        raise ValueError(f"{symbols_enum.__name__} does not have a ROOT item")
-
     return symbols_enum
 
 
+def tokenize(
+    code: str, terminal_rules: List[Tuple[IntEnum, RegexTokenizer]]
+) -> List[Token]:
+    # TODO check terminal_rules
+
+    tokens: List[Token] = []
+    offset = 0
+
+    while offset < len(code):
+        for token_type, tokenizer in terminal_rules:
+            token_length = tokenizer.tokenize(code, offset)
+
+            if token_length is not None:
+                tokens.append(Token(token_type, offset, token_length))
+                offset += token_length
+                break
+
+    return tokens
+
+
 def parse_generic(
-    rewrite_rules: Dict[IntEnum, Parser],
+    non_terminal_rules: Dict[IntEnum, Parser],
+    tokens: List[Token],
     code: str,
     prune_hard_symbols: Optional[Set[IntEnum]] = None,
     prune_soft_symbols: Optional[Set[IntEnum]] = None,
     root_token: str = "ROOT",
 ) -> Tree:
-    symbols_enum = _check_rewrite_rules(rewrite_rules)
+    non_terminals_enum = _check_rules(non_terminal_rules)
 
-    root_symbol = symbols_enum[root_token]
+    try:
+        non_terminals_enum["ROOT"]
+    except KeyError:
+        raise ValueError(f"{non_terminals_enum.__name__} does not have a ROOT item")
 
-    tree = rewrite_rules[root_symbol]
+    root_symbol = non_terminals_enum[root_token]
+
+    tree = non_terminal_rules[root_symbol]
 
     # Prevent infinite recursion
-    if not isinstance(tree, SymbolParser):
+    if not isinstance(tree, NonTerminalParser):
         tree.symbol_type = root_symbol
 
     try:
-        parsed: Optional[Tree] = tree.parse(code, 0, rewrite_rules)
+        parsed: Optional[Tree] = tree.parse(tokens, 0, non_terminal_rules)
 
         assert parsed
         parsed.symbol_type = root_symbol

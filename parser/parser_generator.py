@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from parser.grammar.parser import SymbolType, parse
+from parser.grammar.parser import NonTerminal, Terminal, parse
 from parser.tree import Tree
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
@@ -17,15 +17,15 @@ class UnknownTokenError(Exception):
 def tree_to_python_parser_expression(
     tree: Tree, code: str, terminal_names: Set[str], non_terminal_names: Set[str]
 ) -> str:
-    if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
+    if tree.symbol_type == Terminal.LITERAL_EXPRESSION:
         value = tree.value(code)
         return f"LiteralParser({value})"
 
-    elif tree.symbol_type == SymbolType.REGEX_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.REGEX_EXPRESSION:
         regex_value = tree[0].value(code)
         return f"RegexTokenizer({regex_value})"
 
-    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
         bracket_end = tree[1].value(code)
         child_expr = tree_to_python_parser_expression(
             tree[0], code, terminal_names, non_terminal_names
@@ -45,12 +45,12 @@ def tree_to_python_parser_expression(
         else:  # pragma: nocover
             raise NotImplementedError
 
-    elif tree.symbol_type == SymbolType.CONCATENATION_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.CONCATENATION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == SymbolType.CONCATENATION_EXPRESSION:
+        while tail.symbol_type == NonTerminal.CONCATENATION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -67,12 +67,12 @@ def tree_to_python_parser_expression(
             + ")"
         )
 
-    elif tree.symbol_type == SymbolType.CONJUNCTION_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.CONJUNCTION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == SymbolType.CONJUNCTION_EXPRESSION:
+        while tail.symbol_type == NonTerminal.CONJUNCTION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -89,7 +89,7 @@ def tree_to_python_parser_expression(
             + ")"
         )
 
-    elif tree.symbol_type == SymbolType.TOKEN_NAME:
+    elif tree.symbol_type == Terminal.TOKEN_NAME:
         token_name = tree.value(code)
 
         if token_name in terminal_names:
@@ -109,20 +109,20 @@ class InvalidTree(Exception):
 
 
 def check_terminal_tree(tree: Tree) -> None:
-    if tree.symbol_type != SymbolType.REGEX_EXPRESSION:
+    if tree.symbol_type != NonTerminal.REGEX_EXPRESSION:
         raise InvalidTree("only REGEX_EXPRESSION is allowed")
 
 
 def check_non_terminal_tree(tree: Tree) -> None:
-    if tree.symbol_type == SymbolType.REGEX_EXPRESSION:
+    if tree.symbol_type == NonTerminal.REGEX_EXPRESSION:
         raise InvalidTree(tree.symbol_type.name)
-    elif tree.symbol_type in [SymbolType.TOKEN_NAME, SymbolType.LITERAL_EXPRESSION]:
+    elif tree.symbol_type in [Terminal.TOKEN_NAME, Terminal.LITERAL_EXPRESSION]:
         pass
-    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
         check_non_terminal_tree(tree[0])
     elif tree.symbol_type in [
-        SymbolType.CONCATENATION_EXPRESSION,
-        SymbolType.CONJUNCTION_EXPRESSION,
+        NonTerminal.CONCATENATION_EXPRESSION,
+        NonTerminal.CONJUNCTION_EXPRESSION,
     ]:
         for child in tree.children:
             check_non_terminal_tree(child)
@@ -131,16 +131,16 @@ def check_non_terminal_tree(tree: Tree) -> None:
 
 
 def get_non_terminal_literals(tree: Tree, code: str) -> List[str]:
-    if tree.symbol_type in [SymbolType.REGEX_EXPRESSION, SymbolType.TOKEN_NAME]:
+    if tree.symbol_type in [NonTerminal.REGEX_EXPRESSION, Terminal.TOKEN_NAME]:
         return []
-    if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
+    if tree.symbol_type == Terminal.LITERAL_EXPRESSION:
         literal_value = tree.value(code)[1:-1]
         return [literal_value]
-    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
         return get_non_terminal_literals(tree[0], code)
     elif tree.symbol_type in [
-        SymbolType.CONCATENATION_EXPRESSION,
-        SymbolType.CONJUNCTION_EXPRESSION,
+        NonTerminal.CONCATENATION_EXPRESSION,
+        NonTerminal.CONJUNCTION_EXPRESSION,
     ]:
         literals = []
         for child in tree.children:
@@ -168,7 +168,7 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
 
     for file_child in file.children:
 
-        if file_child.symbol_type == SymbolType.DECORATOR_LINE:
+        if file_child.symbol_type == NonTerminal.DECORATOR_LINE:
             decorator = file_child[0].value(code)
 
             if decorator.startswith("prune"):
@@ -178,7 +178,7 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
             else:  # pragma: nocover
                 raise NotImplementedError
 
-        if file_child.symbol_type == SymbolType.TOKEN_DEFINITION_LINE:
+        if file_child.symbol_type == NonTerminal.TOKEN_DEFINITION_LINE:
             name = file_child[0].value(code)
 
             if is_token:
@@ -232,7 +232,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     code = grammar_path.read_text()
     tree = parse(code)
 
-    assert tree.symbol_type == SymbolType.ROOT
+    assert tree.symbol_type == NonTerminal.ROOT
     parsed_grammar = load_parsed_grammar(tree, code)
 
     terminal_names = {item[0] for item in parsed_grammar.terminals}
@@ -257,7 +257,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script = ""
     parser_script += "from enum import IntEnum, auto\n"
-    parser_script += "from parser.new_parser import (\n"
+    parser_script += "from parser.parser import (\n"
     parser_script += "    ConcatenationParser,\n"
     parser_script += "    LiteralParser,\n"
     parser_script += "    NonTerminalParser,\n"

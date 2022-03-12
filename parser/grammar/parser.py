@@ -10,151 +10,152 @@ from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
     LiteralParser,
+    NonTerminalParser,
+    OptionalParser,
     OrParser,
     Parser,
-    RegexBasedParser,
+    RegexTokenizer,
     RepeatParser,
-    SymbolParser,
+    TerminalParser,
+    Token,
     parse_generic,
+    tokenize,
 )
-from parser.tree import Tree, prune_by_symbol_types
-from typing import Dict, Final, Optional, Set
+from parser.tree import Tree
+from typing import Dict, List, Optional, Set, Tuple
 
 
-class SymbolType(IntEnum):
-    BRACKET_EXPRESSION = auto()
-    BRACKET_EXPRESSION_END = auto()
-    BRACKET_EXPRESSION_REPEAT_RANGE = auto()
+class Terminal(IntEnum):
+    internal_NON_TERMINAL_LITERAL = auto()
     COMMENT_LINE = auto()
-    CONCATENATION_EXPRESSION = auto()
-    CONJUNCTION_EXPRESSION = auto()
-    DECORATOR_LINE = auto()
-    DECORATOR_VALUE = auto()
     INTEGER = auto()
-    LINE = auto()
     LITERAL_EXPRESSION = auto()
-    REGEX_EXPRESSION = auto()
-    ROOT = auto()
-    TOKEN_COMPOUND_EXPRESSION = auto()
-    TOKEN_DEFINITION_LINE = auto()
-    TOKEN_EXPRESSION = auto()
     TOKEN_NAME = auto()
     WHITESPACE = auto()
     WHITESPACE_LINE = auto()
 
 
-REWRITE_RULES: Final[Dict[IntEnum, Parser]] = {
-    SymbolType.BRACKET_EXPRESSION: ConcatenationParser(
-        LiteralParser("("),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.BRACKET_EXPRESSION_END),
+TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
+    (
+        Terminal.internal_NON_TERMINAL_LITERAL,
+        RegexTokenizer(
+            "prune\ soft|prune\ hard|regex\(|,\.\.\.\}|token|\)\?|\\n|\)\{|\)\*|\)\+|\(|\||=|@|\)"
+        ),
     ),
-    SymbolType.BRACKET_EXPRESSION_END: OrParser(
+    (Terminal.COMMENT_LINE, RegexTokenizer("//[^\n]*\n")),
+    (Terminal.WHITESPACE_LINE, RegexTokenizer(" *\n")),
+    (Terminal.WHITESPACE, RegexTokenizer(" *")),
+    (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
+    (Terminal.INTEGER, RegexTokenizer("[0-9]+")),
+    (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\("|n|\\\\))*?"')),
+]
+
+
+class NonTerminal(IntEnum):
+    internal_NON_TERMINAL_LITERAL = auto()
+    BRACKET_EXPRESSION = auto()
+    BRACKET_EXPRESSION_END = auto()
+    BRACKET_EXPRESSION_REPEAT_RANGE = auto()
+    CONCATENATION_EXPRESSION = auto()
+    CONJUNCTION_EXPRESSION = auto()
+    DECORATOR_LINE = auto()
+    DECORATOR_VALUE = auto()
+    LINE = auto()
+    REGEX_EXPRESSION = auto()
+    ROOT = auto()
+    TOKEN_COMPOUND_EXPRESSION = auto()
+    TOKEN_DEFINITION_LINE = auto()
+    TOKEN_EXPRESSION = auto()
+
+
+NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
+    NonTerminal.internal_NON_TERMINAL_LITERAL: TerminalParser(
+        Terminal.internal_NON_TERMINAL_LITERAL
+    ),
+    NonTerminal.BRACKET_EXPRESSION: ConcatenationParser(
+        LiteralParser("("),
+        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
+        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION_END),
+    ),
+    NonTerminal.BRACKET_EXPRESSION_END: OrParser(
         LiteralParser(")"),
         LiteralParser(")+"),
         LiteralParser(")*"),
         LiteralParser(")?"),
-        SymbolParser(SymbolType.BRACKET_EXPRESSION_REPEAT_RANGE),
+        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION_REPEAT_RANGE),
     ),
-    SymbolType.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
-        LiteralParser("){"), SymbolParser(SymbolType.INTEGER), LiteralParser(",...}")
+    NonTerminal.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
+        LiteralParser("){"), TerminalParser(Terminal.INTEGER), LiteralParser(",...}")
     ),
-    SymbolType.COMMENT_LINE: RegexBasedParser("//[^\n]*\n"),
-    SymbolType.CONCATENATION_EXPRESSION: ConcatenationParser(
+    NonTerminal.CONCATENATION_EXPRESSION: ConcatenationParser(
         OrParser(
-            SymbolParser(SymbolType.TOKEN_EXPRESSION),
-            SymbolParser(SymbolType.CONJUNCTION_EXPRESSION),
-            SymbolParser(SymbolType.BRACKET_EXPRESSION),
+            NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
+            NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
+            NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
         ),
         RepeatParser(
-            ConcatenationParser(
-                SymbolParser(SymbolType.WHITESPACE),
-                SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-            ),
-            min_repeats=1,
+            NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION), min_repeats=1
         ),
     ),
-    SymbolType.CONJUNCTION_EXPRESSION: ConcatenationParser(
-        SymbolParser(SymbolType.TOKEN_EXPRESSION),
-        SymbolParser(SymbolType.WHITESPACE),
+    NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationParser(
+        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
         LiteralParser("|"),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
+        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),
-    SymbolType.DECORATOR_LINE: ConcatenationParser(
+    NonTerminal.DECORATOR_LINE: ConcatenationParser(
         LiteralParser("@"),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.DECORATOR_VALUE),
-        SymbolParser(SymbolType.WHITESPACE),
+        NonTerminalParser(NonTerminal.DECORATOR_VALUE),
         LiteralParser("\n"),
     ),
-    SymbolType.DECORATOR_VALUE: OrParser(
-        LiteralParser("prune hard"),
-        LiteralParser("prune soft"),
-        LiteralParser("token"),
-        ConcatenationParser(
-            LiteralParser("forbidden"),
-            SymbolParser(SymbolType.WHITESPACE),
-            SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-        ),
+    NonTerminal.DECORATOR_VALUE: OrParser(
+        LiteralParser("prune hard"), LiteralParser("prune soft"), LiteralParser("token")
     ),
-    SymbolType.INTEGER: RegexBasedParser("[0-9]+"),
-    SymbolType.LINE: OrParser(
-        SymbolParser(SymbolType.COMMENT_LINE),
-        SymbolParser(SymbolType.WHITESPACE_LINE),
-        SymbolParser(SymbolType.TOKEN_DEFINITION_LINE),
-        SymbolParser(SymbolType.DECORATOR_LINE),
+    NonTerminal.LINE: OrParser(
+        NonTerminalParser(NonTerminal.TOKEN_DEFINITION_LINE),
+        NonTerminalParser(NonTerminal.DECORATOR_LINE),
     ),
-    SymbolType.LITERAL_EXPRESSION: RegexBasedParser('"([^\\\\]|\\\\("|n|\\\\))*?"'),
-    SymbolType.REGEX_EXPRESSION: ConcatenationParser(
+    NonTerminal.REGEX_EXPRESSION: ConcatenationParser(
         LiteralParser("regex("),
-        SymbolParser(SymbolType.LITERAL_EXPRESSION),
+        TerminalParser(Terminal.LITERAL_EXPRESSION),
         LiteralParser(")"),
     ),
-    SymbolType.ROOT: RepeatParser(SymbolParser(SymbolType.LINE)),
-    SymbolType.TOKEN_COMPOUND_EXPRESSION: OrParser(
-        SymbolParser(SymbolType.TOKEN_EXPRESSION),
-        SymbolParser(SymbolType.CONCATENATION_EXPRESSION),
-        SymbolParser(SymbolType.CONJUNCTION_EXPRESSION),
-        SymbolParser(SymbolType.BRACKET_EXPRESSION),
+    NonTerminal.ROOT: RepeatParser(NonTerminalParser(NonTerminal.LINE)),
+    NonTerminal.TOKEN_COMPOUND_EXPRESSION: OrParser(
+        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
+        NonTerminalParser(NonTerminal.CONCATENATION_EXPRESSION),
+        NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
+        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
     ),
-    SymbolType.TOKEN_DEFINITION_LINE: ConcatenationParser(
-        SymbolParser(SymbolType.TOKEN_NAME),
-        SymbolParser(SymbolType.WHITESPACE),
+    NonTerminal.TOKEN_DEFINITION_LINE: ConcatenationParser(
+        TerminalParser(Terminal.TOKEN_NAME),
         LiteralParser("="),
-        SymbolParser(SymbolType.WHITESPACE),
-        SymbolParser(SymbolType.TOKEN_COMPOUND_EXPRESSION),
-        SymbolParser(SymbolType.WHITESPACE),
+        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
         LiteralParser("\n"),
     ),
-    SymbolType.TOKEN_EXPRESSION: OrParser(
-        SymbolParser(SymbolType.LITERAL_EXPRESSION),
-        SymbolParser(SymbolType.TOKEN_NAME),
-        SymbolParser(SymbolType.REGEX_EXPRESSION),
+    NonTerminal.TOKEN_EXPRESSION: OrParser(
+        TerminalParser(Terminal.LITERAL_EXPRESSION),
+        TerminalParser(Terminal.TOKEN_NAME),
+        NonTerminalParser(NonTerminal.REGEX_EXPRESSION),
     ),
-    SymbolType.TOKEN_NAME: RegexBasedParser("[A-Z_]+"),
-    SymbolType.WHITESPACE: RegexBasedParser(" *"),
-    SymbolType.WHITESPACE_LINE: RegexBasedParser(" *\n"),
 }
 
 
-HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
-    SymbolType.COMMENT_LINE,
-    SymbolType.WHITESPACE,
-    SymbolType.WHITESPACE_LINE,
-}
+HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()
 
 
 SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
-    SymbolType.LINE,
-    SymbolType.TOKEN_COMPOUND_EXPRESSION,
-    SymbolType.TOKEN_EXPRESSION,
+    NonTerminal.LINE,
+    NonTerminal.TOKEN_COMPOUND_EXPRESSION,
+    NonTerminal.TOKEN_EXPRESSION,
 }
 
 
 def parse(code: str) -> Tree:
+    tokens: List[Token] = tokenize(code, TERMINAL_RULES)
     return parse_generic(
-        REWRITE_RULES, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES
+        NON_TERMINAL_RULES,
+        tokens,
+        code,
+        HARD_PRUNED_SYMBOL_TYPES,
+        SOFT_PRUNED_SYMBOL_TYPES,
     )

@@ -29,6 +29,7 @@ class Terminal(IntEnum):
     internal_NON_TERMINAL_LITERAL = auto()
     COMMENT_LINE = auto()
     INTEGER = auto()
+    NEWLINE = auto()
     LITERAL_EXPRESSION = auto()
     TOKEN_NAME = auto()
     WHITESPACE = auto()
@@ -39,12 +40,13 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
     (
         Terminal.internal_NON_TERMINAL_LITERAL,
         RegexTokenizer(
-            "prune\ soft|prune\ hard|regex\(|,\.\.\.\}|token|\)\?|\\n|\)\{|\)\*|\)\+|\(|\||=|@|\)"
+            "prune\ soft|prune\ hard|regex\(|,\.\.\.\}|token|\)\?|\)\{|\)\*|\)\+|\(|\||=|@|\)"
         ),
     ),
     (Terminal.COMMENT_LINE, RegexTokenizer("//[^\n]*\n")),
     (Terminal.WHITESPACE_LINE, RegexTokenizer(" *\n")),
     (Terminal.WHITESPACE, RegexTokenizer(" *")),
+    (Terminal.NEWLINE, RegexTokenizer("\n")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
     (Terminal.INTEGER, RegexTokenizer("[0-9]+")),
     (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\("|n|\\\\))*?"')),
@@ -139,11 +141,17 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     ),
 }
 
+PRUNED_TERMINALS: Set[IntEnum] = {
+    Terminal.COMMENT_LINE,
+    Terminal.NEWLINE,
+    Terminal.WHITESPACE_LINE,
+    Terminal.WHITESPACE,
+}
 
-HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()
+HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()
 
 
-SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
+SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
     NonTerminal.LINE,
     NonTerminal.TOKEN_COMPOUND_EXPRESSION,
     NonTerminal.TOKEN_EXPRESSION,
@@ -151,11 +159,11 @@ SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {
 
 
 def parse(code: str) -> Tree:
-    tokens: List[Token] = tokenize(code, TERMINAL_RULES)
+    tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)
     return parse_generic(
         NON_TERMINAL_RULES,
         tokens,
         code,
-        HARD_PRUNED_SYMBOL_TYPES,
-        SOFT_PRUNED_SYMBOL_TYPES,
+        HARD_PRUNED_NON_TERMINALS,
+        SOFT_PRUNED_NON_TERMINALS,
     )

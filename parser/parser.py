@@ -19,6 +19,9 @@ class Token:
     offset: int
     length: int
 
+    def value(self, code: str) -> str:
+        return code[self.offset : self.offset + self.length]
+
 
 @dataclass
 class Parser:
@@ -233,16 +236,20 @@ class RegexTokenizer:
         return match_length
 
 
-def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
-    before_offset = code[: e.offset]
+def humanize_parse_error(
+    code: str, tokens: List[Token], e: InternalParseError
+) -> ParseError:
+    offset = tokens[e.token_offset].offset
+
+    before_offset = code[:offset]
     line_number = 1 + before_offset.count("\n")
     prev_newline = before_offset.rfind("\n")
 
-    next_newline = code.find("\n", e.offset)
+    next_newline = code.find("\n", offset)
     if next_newline == -1:
         next_newline = len(code)
 
-    column_number = e.offset - prev_newline
+    column_number = offset - prev_newline
     line = code[prev_newline + 1 : next_newline]
 
     expected_symbol_types: List[IntEnum] = []
@@ -254,28 +261,37 @@ def humanize_parse_error(code: str, e: InternalParseError) -> ParseError:
     return ParseError(line_number, column_number, line, expected_symbol_types)
 
 
-def _check_rules(rewrite_rules: Dict[IntEnum, Parser]) -> Type[IntEnum]:
+def _check_non_terminal_rules(
+    non_terminal_rules: Dict[IntEnum, Parser]
+) -> Type[IntEnum]:
     """
     Checks completeness, inconsistencies.
     Returns the IntEnum subclass type used for all keys
     """
-    symbols_enum = type(list((rewrite_rules.keys()))[0])
+    symbols_enum = type(list((non_terminal_rules.keys()))[0])
 
     for enum_value in symbols_enum:
         try:
-            rewrite_rules[enum_value]
+            non_terminal_rules[enum_value]
         except KeyError:
             raise UnhandledSymbolType(enum_value)
 
-    if set(rewrite_rules.keys()) != set(symbols_enum):
-        unexpected_keys = set(rewrite_rules.keys()) - set(symbols_enum)
+    if set(non_terminal_rules.keys()) != set(symbols_enum):
+        unexpected_keys = set(non_terminal_rules.keys()) - set(symbols_enum)
         raise UnexpectedSymbolType(unexpected_keys)
+
+    try:
+        symbols_enum["ROOT"]
+    except KeyError:
+        raise ValueError(f"Non-terminals do not have a ROOT item")
 
     return symbols_enum
 
 
 def tokenize(
-    code: str, terminal_rules: List[Tuple[IntEnum, RegexTokenizer]]
+    code: str,
+    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]],
+    pruned_terminals: Set[IntEnum],
 ) -> List[Token]:
     # TODO check terminal_rules
 
@@ -287,7 +303,9 @@ def tokenize(
             token_length = tokenizer.tokenize(code, offset)
 
             if token_length is not None:
-                tokens.append(Token(token_type, offset, token_length))
+                if token_type not in pruned_terminals:
+                    tokens.append(Token(token_type, offset, token_length))
+
                 offset += token_length
                 break
 
@@ -302,12 +320,7 @@ def parse_generic(
     prune_soft_symbols: Optional[Set[IntEnum]] = None,
     root_token: str = "ROOT",
 ) -> Tree:
-    non_terminals_enum = _check_rules(non_terminal_rules)
-
-    try:
-        non_terminals_enum["ROOT"]
-    except KeyError:
-        raise ValueError(f"{non_terminals_enum.__name__} does not have a ROOT item")
+    non_terminals_enum = _check_non_terminal_rules(non_terminal_rules)
 
     root_symbol = non_terminals_enum[root_token]
 
@@ -327,7 +340,7 @@ def parse_generic(
             raise InternalParseError(parsed.symbol_length, None)
 
     except InternalParseError as e:
-        raise humanize_parse_error(code, e) from e
+        raise humanize_parse_error(code, tokens, e) from e
 
     parsed = prune_no_symbol(parsed)
     assert parsed

@@ -4,7 +4,7 @@ from typing import List, Optional, Set
 
 class InternalParseError(Exception):
     def __init__(self, offset: int, symbol_type: Optional[IntEnum]) -> None:
-        self.offset = offset
+        self.token_offset = offset
         self.symbol_type = symbol_type
         super().__init__()
 

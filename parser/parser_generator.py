@@ -157,14 +157,15 @@ class ParsedGrammar:
     hard_pruned_non_terminals: Set[str]
     soft_pruned_non_terminals: Set[str]
     non_terminal_literals: List[str]
+    pruned_terminals: Set[str]
 
 
-def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
+def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:  # noqa: C901
 
-    parsed_grammar = ParsedGrammar([], [], set(), set(), [])
+    parsed_grammar = ParsedGrammar([], [], set(), set(), [], set())
 
     prune_decorator: Optional[str] = None
-    is_token = False
+    is_terminal = False
 
     for file_child in file.children:
 
@@ -174,16 +175,25 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
             if decorator.startswith("prune"):
                 prune_decorator = decorator
             elif decorator == "token":
-                is_token = True
+                is_terminal = True
             else:  # pragma: nocover
                 raise NotImplementedError
 
         if file_child.symbol_type == NonTerminal.TOKEN_DEFINITION_LINE:
             name = file_child[0].value(code)
 
-            if is_token:
+            if is_terminal:
                 terminal = (name, file_child[1])
                 parsed_grammar.terminals.append(terminal)
+
+                if prune_decorator:
+                    if prune_decorator == "prune hard":
+                        parsed_grammar.pruned_terminals.add(name)
+                    elif prune_decorator == "prune soft":
+                        raise ValueError("Soft pruning doesn't make sense for tokens")
+                    else:  # pragma: nocover
+                        raise NotImplementedError
+
             else:
                 non_terminal = (name, file_child[1])
                 parsed_grammar.non_terminals.append(non_terminal)
@@ -197,7 +207,7 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
                         raise NotImplementedError
 
             prune_decorator = None
-            is_token = False
+            is_terminal = False
 
     non_terminal_literals: List[str] = []
 
@@ -305,25 +315,33 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
     parser_script += "}\n\n\n"
 
+    if parsed_grammar.pruned_terminals:
+        parser_script += "PRUNED_TERMINALS: Set[IntEnum] = {\n"
+        for name in sorted(parsed_grammar.pruned_terminals):
+            parser_script += f"    Terminal.{name},\n"
+        parser_script += "}\n\n\n"
+    else:
+        parser_script += "PRUNED_TERMINALS: Set[IntEnum] = set()\n\n\n"
+
     if parsed_grammar.hard_pruned_non_terminals:
-        parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        parser_script += "HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
         for non_terminal_name in sorted(parsed_grammar.hard_pruned_non_terminals):
             parser_script += f"    NonTerminal.{non_terminal_name},\n"
         parser_script += "}\n\n\n"
     else:
-        parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()\n\n\n"
+        parser_script += "HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     if parsed_grammar.soft_pruned_non_terminals:
-        parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
         for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
             parser_script += f"    NonTerminal.{non_terminal_name},\n"
         parser_script += "}\n\n\n"
     else:
-        parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()\n\n\n"
+        parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     parser_script += "def parse(code: str) -> Tree:\n"
     parser_script += "    tokens: List[Token] = tokenize(code, TERMINAL_RULES)\n"
-    parser_script += "    return parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES)\n"
+    parser_script += "    return parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS)\n"
 
     # format with black
     parser_script = format_str(parser_script, mode=FileMode())

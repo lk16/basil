@@ -163,7 +163,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"
     parser_script += "from parser.tree import Tree, prune_by_symbol_types\n"
-    parser_script += "from typing import Dict, Final, Optional, Set\n"
+    parser_script += "from typing import Dict, Final, Optional, Set, List, Tuple\n"
     parser_script += "\n\n"
 
     parser_script += "class NonTerminal(IntEnum):\n"
@@ -182,11 +182,11 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    {terminal_name} = auto()\n"
     parser_script += "\n\n"
 
-    parser_script += "TERMINAL_RULES: Final[Dict[IntEnum, Parser]] = {\n"
+    parser_script += "TERMINAL_RULES: Final[List[Tuple[IntEnum, Parser]]] = [\n"
     for non_terminal_name, tree in sorted(parsed_grammar.terminals):
         parser_expr = tree_to_python_parser_expression(tree, code)
-        parser_script += f"    Terminal.{non_terminal_name}: {parser_expr},\n"
-    parser_script += "}\n\n\n"
+        parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
+    parser_script += "]\n\n\n"
 
     parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
     for non_terminal_name in sorted(parsed_grammar.hard_pruned_non_terminals):

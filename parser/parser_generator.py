@@ -110,8 +110,20 @@ def check_terminal_tree(tree: Tree, code: str) -> None:
 
 
 def check_non_terminal_tree(tree: Tree, code: str) -> None:
-    # TODO
-    raise NotImplementedError
+    if tree.symbol_type == SymbolType.REGEX_EXPRESSION:
+        raise InvalidTree(tree.symbol_type.name)
+    elif tree.symbol_type in [SymbolType.LITERAL_EXPRESSION, SymbolType.TOKEN_NAME]:
+        pass
+    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+        check_non_terminal_tree(tree[0], code)
+    elif tree.symbol_type in [
+        SymbolType.CONCATENATION_EXPRESSION,
+        SymbolType.CONJUNCTION_EXPRESSION,
+    ]:
+        for child in tree.children:
+            check_non_terminal_tree(child, code)
+    else:  # pragma: nocover
+        raise NotImplementedError
 
 
 @dataclass

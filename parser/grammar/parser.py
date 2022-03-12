@@ -107,7 +107,7 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     NonTerminal.DECORATOR_LINE: ConcatenationParser(
         LiteralParser("@"),
         NonTerminalParser(NonTerminal.DECORATOR_VALUE),
-        LiteralParser("\n"),
+        TerminalParser(Terminal.NEWLINE),
     ),
     NonTerminal.DECORATOR_VALUE: OrParser(
         LiteralParser("prune hard"), LiteralParser("prune soft"), LiteralParser("token")
@@ -132,7 +132,7 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
         TerminalParser(Terminal.TOKEN_NAME),
         LiteralParser("="),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
-        LiteralParser("\n"),
+        TerminalParser(Terminal.NEWLINE),
     ),
     NonTerminal.TOKEN_EXPRESSION: OrParser(
         TerminalParser(Terminal.LITERAL_EXPRESSION),

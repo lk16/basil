@@ -109,19 +109,39 @@ def check_terminal_tree(tree: Tree, code: str) -> None:
         raise NotImplementedError  # pragma: nocover
 
 
-def check_non_terminal_tree(tree: Tree, code: str) -> None:
-    if tree.symbol_type == SymbolType.REGEX_EXPRESSION:
+def check_non_terminal_tree(tree: Tree) -> None:
+    if tree.symbol_type in [SymbolType.REGEX_EXPRESSION, SymbolType.LITERAL_EXPRESSION]:
         raise InvalidTree(tree.symbol_type.name)
-    elif tree.symbol_type in [SymbolType.LITERAL_EXPRESSION, SymbolType.TOKEN_NAME]:
+    elif tree.symbol_type == SymbolType.TOKEN_NAME:
         pass
     elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
-        check_non_terminal_tree(tree[0], code)
+        check_non_terminal_tree(tree[0])
     elif tree.symbol_type in [
         SymbolType.CONCATENATION_EXPRESSION,
         SymbolType.CONJUNCTION_EXPRESSION,
     ]:
         for child in tree.children:
-            check_non_terminal_tree(child, code)
+            check_non_terminal_tree(child)
+    else:  # pragma: nocover
+        raise NotImplementedError
+
+
+def get_non_terminal_literals(tree: Tree, code: str) -> List[str]:
+    if tree.symbol_type in [SymbolType.REGEX_EXPRESSION, SymbolType.TOKEN_NAME]:
+        return []
+    if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
+        literal_value = tree.value(code)[1:-1]
+        return [literal_value]
+    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+        return get_non_terminal_literals(tree[0], code)
+    elif tree.symbol_type in [
+        SymbolType.CONCATENATION_EXPRESSION,
+        SymbolType.CONJUNCTION_EXPRESSION,
+    ]:
+        literals = []
+        for child in tree.children:
+            literals += get_non_terminal_literals(child, code)
+        return literals
     else:  # pragma: nocover
         raise NotImplementedError
 
@@ -132,11 +152,12 @@ class ParsedGrammar:
     non_terminals: List[Tuple[str, Tree]]
     hard_pruned_non_terminals: Set[str]
     soft_pruned_non_terminals: Set[str]
+    non_terminal_literals: List[str]
 
 
 def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
 
-    parsed_grammar = ParsedGrammar([], [], set(), set())
+    parsed_grammar = ParsedGrammar([], [], set(), set(), [])
 
     prune_decorator: Optional[str] = None
     is_token = False
@@ -174,6 +195,26 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
             prune_decorator = None
             is_token = False
 
+    non_terminal_literals: List[str] = []
+
+    for _, tree in parsed_grammar.non_terminals:
+        non_terminal_literals += get_non_terminal_literals(tree, code)
+
+    # remove duplicates and put longest first
+    non_terminal_literals = sorted(
+        set(non_terminal_literals), key=lambda x: len(x), reverse=True
+    )
+
+    non_terminal_literalss_lookup = {  # non-terminal literal -> name of terminal
+        non_terminal_literal: f"internal_literal_{i}"
+        for i, non_terminal_literal in enumerate(non_terminal_literals)
+    }
+
+    _ = non_terminal_literalss_lookup
+    # TODO replace non_terminals_literal in non_terminals with terminal with non_terminals_lookup
+
+    # TODO prepend terminals with internal terminals
+
     for name, tree in parsed_grammar.terminals:
         try:
             check_terminal_tree(tree, code)
@@ -182,7 +223,7 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
 
     for name, tree in parsed_grammar.non_terminals:
         try:
-            check_non_terminal_tree(tree, code)
+            check_non_terminal_tree(tree)
         except InvalidTree as e:
             raise ValueError(f"Invalid tree for non_terminal {name}: {e}") from e
 

@@ -9,18 +9,14 @@ from parser.exceptions import (
     UnexpectedSymbolType,
     UnhandledSymbolType,
 )
-from parser.tree import Tree, prune_by_symbol_types, prune_no_symbol, prune_zero_length
+from parser.tree import (
+    Token,
+    Tree,
+    prune_by_symbol_types,
+    prune_no_symbol,
+    prune_zero_length,
+)
 from typing import Dict, List, Optional, Set, Tuple, Type
-
-
-@dataclass
-class Token:
-    type: IntEnum
-    offset: int
-    length: int
-
-    def value(self, code: str) -> str:
-        return code[self.offset : self.offset + self.length]
 
 
 @dataclass
@@ -56,15 +52,15 @@ class OrParser(Parser):
 
             if not longest_parsed:
                 longest_parsed = parsed
-            elif parsed.symbol_length > longest_parsed.symbol_length:
+            elif parsed.token_count > longest_parsed.token_count:
                 longest_parsed = parsed
 
         if not longest_parsed:
             raise InternalParseError(offset, self.symbol_type)
 
         return Tree(
-            longest_parsed.symbol_offset,
-            longest_parsed.symbol_length,
+            longest_parsed.token_offset,
+            longest_parsed.token_count,
             self.symbol_type,
             [longest_parsed],
         )
@@ -91,7 +87,7 @@ class RepeatParser(Parser):
                 break
             else:
                 sub_trees.append(parsed)
-                child_offset += parsed.symbol_length
+                child_offset += parsed.token_count
 
         if len(sub_trees) < self.min_repeats:
             raise InternalParseError(offset, self.child.symbol_type)
@@ -121,7 +117,7 @@ class OptionalParser(Parser):
         try:
             parsed = self.child.parse(tokens, offset, non_terminal_rules)
             children = [parsed]
-            length = parsed.symbol_length
+            length = parsed.token_count
         except InternalParseError:
             pass
 
@@ -150,7 +146,7 @@ class ConcatenationParser(Parser):
         for child in self.children:
             parsed = child.parse(tokens, child_offset, non_terminal_rules)
             sub_trees.append(parsed)
-            child_offset += parsed.symbol_length
+            child_offset += parsed.token_count
 
         return Tree(
             offset,
@@ -175,7 +171,7 @@ class TerminalParser(Parser):
         if next_token.type != self.token_type:
             raise InternalParseError(offset, self.symbol_type)
 
-        return Tree(offset, next_token.length, self.symbol_type, [])
+        return Tree(offset, 1, self.symbol_type, [])
 
 
 class NonTerminalParser(Parser):
@@ -336,8 +332,8 @@ def parse_generic(
         assert parsed
         parsed.symbol_type = root_symbol
 
-        if parsed.symbol_length != len(code):
-            raise InternalParseError(parsed.symbol_length, None)
+        if parsed.token_count != len(code):
+            raise InternalParseError(parsed.token_count, None)
 
     except InternalParseError as e:
         raise humanize_parse_error(code, tokens, e) from e

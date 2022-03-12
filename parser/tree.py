@@ -1,32 +1,34 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Callable, List, Optional, Set
+
+
+@dataclass
+class Token:
+    type: IntEnum
+    offset: int
+    length: int
+
+    def value(self, code: str) -> str:
+        return code[self.offset : self.offset + self.length]
 
 
 @dataclass
 class Tree:
-    symbol_offset: int
-    symbol_length: int
+    token_offset: int
+    token_count: int
     symbol_type: Optional[IntEnum]
     children: List["Tree"]
 
     def size(self) -> int:  # pragma: nocover
         return 1 + sum(child.size() for child in self.children)
 
-    def dump(self, code: str) -> Dict[str, Any]:  # pragma: nocover
-        type_str = ""
+    def value(self, tokens: List["Token"], code: str) -> str:
+        value_start = tokens[self.token_offset].offset
+        last_token = tokens[self.token_offset + self.token_count - 1]
+        value_end = last_token.offset + last_token.length
 
-        if self.symbol_type:
-            type_str = self.symbol_type.name
-
-        return {
-            "value": self.value(code),
-            "type": type_str,
-            "children": [child.dump(code) for child in self.children],
-        }
-
-    def value(self, code: str) -> str:
-        return code[self.symbol_offset : self.symbol_offset + self.symbol_length]
+        return code[value_start:value_end]
 
     def __getitem__(self, index: int) -> "Tree":  # pragma: nocover
         return self.children[index]
@@ -37,7 +39,7 @@ def prune_zero_length(tree: Optional[Tree]) -> Optional[Tree]:
         return None
 
     def prune_condition(tree: Tree) -> bool:
-        return tree.symbol_length == 0
+        return tree.token_count == 0
 
     return prune_tree(tree, prune_condition)
 
@@ -90,15 +92,15 @@ def _prune_by_symbol_types_soft(
 
     children = [
         Tree(
-            child.symbol_offset,
-            child.symbol_length,
+            child.token_offset,
+            child.token_count,
             child.symbol_type,
             get_descendants_without_symbol_types(child, symbol_types),
         )
         for child in descendants_with_symbol
     ]
 
-    return Tree(tree.symbol_offset, tree.symbol_length, tree.symbol_type, children)
+    return Tree(tree.token_offset, tree.token_count, tree.symbol_type, children)
 
 
 def prune_tree(
@@ -141,8 +143,8 @@ def prune_no_symbol(tree: Optional[Tree]) -> Optional[Tree]:
         return with_symbol
 
     return Tree(
-        tree.symbol_offset,
-        tree.symbol_length,
+        tree.token_offset,
+        tree.token_count,
         tree.symbol_type,
         get_descendants_with_symbol(tree),
     )

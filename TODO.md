@@ -5,17 +5,13 @@
 [x] maintain order of terminals in output file
 [x] check that terminals don't have a SymbolParser or repeat-family parsers
 [x] check that parsers for non-terminals don't have a RegexParser
-[ ] add all literals as internal tokens to token list
-[ ] Implement TokenParser, that accepts exactly one type of token
-[ ] Build Parser class tree as before, with TokenParser
+[x] add all literals as internal tokens to token list
+[x] terminal_rules should only have RegexTokenizers
 [ ] Implement Tokenizer
+[ ] Re-implement all Parsers
+[ ] Implement TokenParser, that accepts exactly one type of token
 [ ] tokenize input file
 [ ] send tokenize input file into parser
-
-
-### Parser generator
-- warn if an unknown token name is encountered while parsing
-
 
 ### Parse Errors
 - show meaningful location where parsing failed

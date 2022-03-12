@@ -141,5 +141,5 @@ def test_tree_to_python_parser_expression(code: str, expected_python_expr: str) 
 
     tree = root_tree[0][1]
 
-    python_expr = tree_to_python_parser_expression(tree, code)
+    python_expr = tree_to_python_parser_expression(tree, code, set(), set())
     assert python_expr == expected_python_expr

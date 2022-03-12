@@ -1,22 +1,35 @@
+import re
 from dataclasses import dataclass
 from parser.grammar.parser import SymbolType, parse
 from parser.tree import Tree
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
+from black import FileMode, format_str
 
-def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
+
+class UnknownTokenError(Exception):
+    def __init__(self, token_name: str) -> None:
+        self.token_name = token_name
+        super().__init__(f"Unknown token name {token_name}")
+
+
+def tree_to_python_parser_expression(
+    tree: Tree, code: str, terminal_names: Set[str], non_terminal_names: Set[str]
+) -> str:
     if tree.symbol_type == SymbolType.LITERAL_EXPRESSION:
         value = tree.value(code)
         return f"LiteralParser({value})"
 
     elif tree.symbol_type == SymbolType.REGEX_EXPRESSION:
         regex_value = tree[0].value(code)
-        return f"RegexBasedParser({regex_value})"
+        return f"RegexTokenizer({regex_value})"
 
     elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
         bracket_end = tree[1].value(code)
-        child_expr = tree_to_python_parser_expression(tree[0], code)
+        child_expr = tree_to_python_parser_expression(
+            tree[0], code, terminal_names, non_terminal_names
+        )
 
         if bracket_end == ")":
             return child_expr
@@ -46,7 +59,9 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return (
             "ConcatenationParser("
             + ", ".join(
-                tree_to_python_parser_expression(concat_item, code)
+                tree_to_python_parser_expression(
+                    concat_item, code, terminal_names, non_terminal_names
+                )
                 for concat_item in conjunc_items
             )
             + ")"
@@ -66,14 +81,23 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
         return (
             "OrParser("
             + ", ".join(
-                tree_to_python_parser_expression(conjunc_item, code)
+                tree_to_python_parser_expression(
+                    conjunc_item, code, terminal_names, non_terminal_names
+                )
                 for conjunc_item in conjunc_items
             )
             + ")"
         )
 
     elif tree.symbol_type == SymbolType.TOKEN_NAME:
-        return "SymbolParser(NonTerminal." + tree.value(code) + ")"
+        token_name = tree.value(code)
+
+        if token_name in terminal_names:
+            return "TerminalParser(Terminal." + tree.value(code) + ")"
+        elif token_name in non_terminal_names:
+            return "NonTerminalParser(NonTerminal." + tree.value(code) + ")"
+        else:
+            raise UnknownTokenError(token_name)
 
     raise NotImplementedError  # pragma: nocover
 
@@ -84,35 +108,15 @@ class InvalidTree(Exception):
         super().__init__(f"{invalid_thing} is not allowed.")
 
 
-def check_terminal_tree(tree: Tree, code: str) -> None:
-    if tree.symbol_type in [SymbolType.LITERAL_EXPRESSION, SymbolType.REGEX_EXPRESSION]:
-        pass
-    elif tree.symbol_type == SymbolType.TOKEN_NAME:
-        raise InvalidTree(tree.symbol_type.name)
-    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
-        bracket_end = tree[1].value(code)
-
-        if bracket_end == ")":
-            check_terminal_tree(tree[0], code)
-        elif bracket_end in [")*", ")+", ")?"] or bracket_end.startswith("){"):
-            raise InvalidTree(bracket_end)
-        else:  # pragma: nocover
-            raise NotImplementedError
-
-    elif tree.symbol_type in [
-        SymbolType.CONCATENATION_EXPRESSION,
-        SymbolType.CONJUNCTION_EXPRESSION,
-    ]:
-        for child in tree.children:
-            check_terminal_tree(child, code)
-    else:
-        raise NotImplementedError  # pragma: nocover
+def check_terminal_tree(tree: Tree) -> None:
+    if tree.symbol_type != SymbolType.REGEX_EXPRESSION:
+        raise InvalidTree("only REGEX_EXPRESSION is allowed")
 
 
 def check_non_terminal_tree(tree: Tree) -> None:
-    if tree.symbol_type in [SymbolType.REGEX_EXPRESSION, SymbolType.LITERAL_EXPRESSION]:
+    if tree.symbol_type == SymbolType.REGEX_EXPRESSION:
         raise InvalidTree(tree.symbol_type.name)
-    elif tree.symbol_type == SymbolType.TOKEN_NAME:
+    elif tree.symbol_type in [SymbolType.TOKEN_NAME, SymbolType.LITERAL_EXPRESSION]:
         pass
     elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
         check_non_terminal_tree(tree[0])
@@ -200,24 +204,14 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
     for _, tree in parsed_grammar.non_terminals:
         non_terminal_literals += get_non_terminal_literals(tree, code)
 
-    # remove duplicates and put longest first
-    non_terminal_literals = sorted(
+    # remove duplicates and sort such that longest items come first
+    parsed_grammar.non_terminal_literals = sorted(
         set(non_terminal_literals), key=lambda x: len(x), reverse=True
     )
 
-    non_terminal_literalss_lookup = {  # non-terminal literal -> name of terminal
-        non_terminal_literal: f"internal_literal_{i}"
-        for i, non_terminal_literal in enumerate(non_terminal_literals)
-    }
-
-    _ = non_terminal_literalss_lookup
-    # TODO replace non_terminals_literal in non_terminals with terminal with non_terminals_lookup
-
-    # TODO prepend terminals with internal terminals
-
     for name, tree in parsed_grammar.terminals:
         try:
-            check_terminal_tree(tree, code)
+            check_terminal_tree(tree)
         except InvalidTree as e:
             raise ValueError(f"Invalid tree for terminal {name}: {e}") from e
 
@@ -241,6 +235,17 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     assert tree.symbol_type == SymbolType.ROOT
     parsed_grammar = load_parsed_grammar(tree, code)
 
+    terminal_names = {item[0] for item in parsed_grammar.terminals}
+    non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
+
+    non_terminal_literal_parser_expr = (
+        'RegexTokenizer("'
+        + "|".join(
+            re.escape(literal) for literal in parsed_grammar.non_terminal_literals
+        )
+        + '")'
+    )
+
     prefix_comments = "# ===================================== #\n"
     prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
     prefix_comments += "# ===================================== #\n\n"
@@ -252,58 +257,74 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script = ""
     parser_script += "from enum import IntEnum, auto\n"
-    parser_script += "from parser.parser import (\n"
+    parser_script += "from parser.new_parser import (\n"
     parser_script += "    ConcatenationParser,\n"
     parser_script += "    LiteralParser,\n"
+    parser_script += "    NonTerminalParser,\n"
     parser_script += "    OptionalParser,\n"
     parser_script += "    OrParser,\n"
     parser_script += "    Parser,\n"
-    parser_script += "    RegexBasedParser,\n"
+    parser_script += "    RegexTokenizer,\n"
     parser_script += "    RepeatParser,\n"
-    parser_script += "    SymbolParser,\n"
+    parser_script += "    TerminalParser,\n"
+    parser_script += "    Token,\n"
     parser_script += "    parse_generic,\n"
+    parser_script += "    tokenize,\n"
     parser_script += ")\n"
-    parser_script += "from parser.tree import Tree, prune_by_symbol_types\n"
-    parser_script += "from typing import Dict, Final, Optional, Set, List, Tuple\n"
+    parser_script += "from parser.tree import Tree\n"
+    parser_script += "from typing import Dict, Optional, Set, List, Tuple\n"
     parser_script += "\n\n"
+
+    parser_script += "class Terminal(IntEnum):\n"
+    parser_script += f"    internal_NON_TERMINAL_LITERAL = auto()\n"
+    for terminal_name, _ in sorted(parsed_grammar.terminals):
+        parser_script += f"    {terminal_name} = auto()\n"
+    parser_script += "\n\n"
+
+    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [\n"
+    parser_script += f"    (Terminal.internal_NON_TERMINAL_LITERAL, {non_terminal_literal_parser_expr}),\n"
+    for non_terminal_name, tree in parsed_grammar.terminals:
+        parser_expr = tree_to_python_parser_expression(
+            tree, code, terminal_names, non_terminal_names
+        )
+        parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
+    parser_script += "]\n\n\n"
 
     parser_script += "class NonTerminal(IntEnum):\n"
     for non_terminal_name, _ in sorted(parsed_grammar.non_terminals):
         parser_script += f"    {non_terminal_name} = auto()\n"
     parser_script += "\n\n"
 
-    parser_script += "NON_TERMINAL_RULES: Final[Dict[IntEnum, Parser]] = {\n"
+    parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {\n"
     for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
-        parser_expr = tree_to_python_parser_expression(tree, code)
+        parser_expr = tree_to_python_parser_expression(
+            tree, code, terminal_names, non_terminal_names
+        )
         parser_script += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
     parser_script += "}\n\n\n"
 
-    parser_script += "class Terminal(IntEnum):\n"
-    for terminal_name, _ in sorted(parsed_grammar.terminals):
-        parser_script += f"    {terminal_name} = auto()\n"
-    parser_script += "\n\n"
+    if parsed_grammar.hard_pruned_non_terminals:
+        parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        for non_terminal_name in sorted(parsed_grammar.hard_pruned_non_terminals):
+            parser_script += f"    NonTerminal.{non_terminal_name},\n"
+        parser_script += "}\n\n\n"
+    else:
+        parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()\n\n\n"
 
-    parser_script += "TERMINAL_RULES: Final[List[Tuple[IntEnum, Parser]]] = [\n"
-    for non_terminal_name, tree in sorted(parsed_grammar.terminals):
-        parser_expr = tree_to_python_parser_expression(tree, code)
-        parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
-    parser_script += "]\n\n\n"
-
-    parser_script += "HARD_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
-    for non_terminal_name in sorted(parsed_grammar.hard_pruned_non_terminals):
-        parser_script += f"    NonTerminal.{non_terminal_name},\n"
-    parser_script += "}\n\n\n"
-
-    parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
-    for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
-        parser_script += f"    NonTerminal.{non_terminal_name},\n"
-    parser_script += "}\n\n\n"
+    if parsed_grammar.soft_pruned_non_terminals:
+        parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = {\n"
+        for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
+            parser_script += f"    NonTerminal.{non_terminal_name},\n"
+        parser_script += "}\n\n\n"
+    else:
+        parser_script += "SOFT_PRUNED_SYMBOL_TYPES: Set[IntEnum] = set()\n\n\n"
 
     parser_script += "def parse(code: str) -> Tree:\n"
-    parser_script += "    return parse_generic(NON_TERMINAL_RULES, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES)\n"
+    parser_script += "    tokens: List[Token] = tokenize(code, TERMINAL_RULES)\n"
+    parser_script += "    return parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_SYMBOL_TYPES, SOFT_PRUNED_SYMBOL_TYPES)\n"
 
     # format with black
-    # TODO parser_script = format_str(parser_script, mode=FileMode())
+    parser_script = format_str(parser_script, mode=FileMode())
 
     return prefix_comments + parser_script
 

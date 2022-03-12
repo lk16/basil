@@ -190,6 +190,25 @@ class NonTerminalParser(Parser):
         )
 
 
+class LiteralParser(Parser):
+    def __init__(self, literal: str) -> None:
+        self.literal = literal
+
+    def parse(
+        self,
+        tokens: List[Token],
+        offset: int,
+        non_terminal_rules: Dict[IntEnum, "Parser"],
+    ) -> Tree:
+        non_terminal_enum = type(list(non_terminal_rules.keys())[0])
+        non_terminal_literal_enum_entry = non_terminal_enum[
+            "internal_NON_TERMINAL_LITERAL"
+        ]
+        return non_terminal_rules[non_terminal_literal_enum_entry].parse(
+            tokens, offset, non_terminal_rules
+        )
+
+
 class RegexTokenizer:
     def __init__(self, regex: str):
         if regex.startswith("^"):

@@ -30,7 +30,7 @@ class ParseError(Exception):
         source_file = "<source_file>"
 
         msg = (
-            f"Failed to parse at {source_file}:{line_number}:{column_number}\n"
+            f"Parse error at {source_file}:{line_number}:{column_number}\n"
             + f"{self.line}\n"
             + " " * (self.column_number - 1)
             + "^"

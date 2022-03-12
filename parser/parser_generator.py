@@ -1,5 +1,7 @@
 import re
+import sys
 from dataclasses import dataclass
+from parser.exceptions import ParseError
 from parser.grammar.parser import NonTerminal, Terminal, parse
 from parser.tree import Tree
 from pathlib import Path
@@ -361,7 +363,11 @@ def check_parser_staleness(
 def regenerate_parser_if_stale(
     grammar_path: Path, parser_path: Path
 ) -> None:  # pragma: nocover
-    generated_parser = generate_parser(grammar_path)
+    try:
+        generated_parser = generate_parser(grammar_path)
+    except ParseError as e:
+        print(e.args[0], file=sys.stderr)
+        exit(1)
 
     if check_parser_staleness(generated_parser, parser_path):
         parser_path.write_text(generated_parser)

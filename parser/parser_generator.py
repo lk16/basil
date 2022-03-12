@@ -78,6 +78,42 @@ def tree_to_python_parser_expression(tree: Tree, code: str) -> str:
     raise NotImplementedError  # pragma: nocover
 
 
+class InvalidTree(Exception):
+    def __init__(self, invalid_thing: str):
+        self.symbol_type = invalid_thing
+        super().__init__(f"{invalid_thing} is not allowed.")
+
+
+def check_terminal_tree(tree: Tree, code: str) -> None:
+    if tree.symbol_type in [SymbolType.LITERAL_EXPRESSION, SymbolType.REGEX_EXPRESSION]:
+        pass
+    elif tree.symbol_type == SymbolType.TOKEN_NAME:
+        raise InvalidTree(tree.symbol_type.name)
+    elif tree.symbol_type == SymbolType.BRACKET_EXPRESSION:
+        bracket_end = tree[1].value(code)
+
+        if bracket_end == ")":
+            check_terminal_tree(tree[0], code)
+        elif bracket_end in [")*", ")+", ")?"] or bracket_end.startswith("){"):
+            raise InvalidTree(bracket_end)
+        else:  # pragma: nocover
+            raise NotImplementedError
+
+    elif tree.symbol_type in [
+        SymbolType.CONCATENATION_EXPRESSION,
+        SymbolType.CONJUNCTION_EXPRESSION,
+    ]:
+        for child in tree.children:
+            check_terminal_tree(child, code)
+    else:
+        raise NotImplementedError  # pragma: nocover
+
+
+def check_non_terminal_tree(tree: Tree, code: str) -> None:
+    # TODO
+    raise NotImplementedError
+
+
 @dataclass
 class ParsedGrammar:
     terminals: List[Tuple[str, Tree]]
@@ -125,6 +161,18 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:
 
             prune_decorator = None
             is_token = False
+
+    for name, tree in parsed_grammar.terminals:
+        try:
+            check_terminal_tree(tree, code)
+        except InvalidTree as e:
+            raise ValueError(f"Invalid tree for terminal {name}: {e}") from e
+
+    for name, tree in parsed_grammar.non_terminals:
+        try:
+            check_non_terminal_tree(tree, code)
+        except InvalidTree as e:
+            raise ValueError(f"Invalid tree for non_terminal {name}: {e}") from e
 
     return parsed_grammar
 

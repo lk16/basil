@@ -2,9 +2,9 @@
 
 ### Tokenize
 [x] read all terminals and nonterminals from grammar file
-[ ] maintain order of terminals in output file
-[ ] check that parsers for non-tokens don't have a RegexParser
-[ ] check that non-tokens don't have a SymbolParser
+[x] maintain order of terminals in output file
+[ ] check that parsers for non-terminals don't have a RegexParser
+[ ] check that terminals don't have a SymbolParser
 [ ] add all literals as internal tokens to token list
 [ ] Implement TokenParser, that accepts exactly one type of token
 [ ] Build Parser class tree as before, with TokenParser

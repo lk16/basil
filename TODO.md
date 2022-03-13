@@ -7,10 +7,10 @@
 [x] check that parsers for non-terminals don't have a RegexParser
 [x] add all literals as internal tokens to token list
 [x] terminal_rules should only have RegexTokenizers
-[ ] Implement Tokenizer
-[ ] Re-implement all Parsers
-[ ] Implement TokenParser, that accepts exactly one type of token
-[ ] tokenize input file
+[x] Implement Tokenizer
+[x] Re-implement all Parsers
+[x] Implement TokenParser, that accepts exactly one type of token
+[x] tokenize input file
 [ ] send tokenize input file into parser
 
 ### Parse Errors

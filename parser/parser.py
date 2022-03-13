@@ -213,6 +213,10 @@ class LiteralParser(Parser):
 def humanize_parse_error(
     code: str, tokens: List[Token], e: InternalParseError
 ) -> ParseError:
+    if not tokens:
+        # strange case: no input tokens
+        return ParseError(0, 0, "<no input tokens found>", [])
+
     if e.token_offset == len(tokens):
         offset = tokens[-1].offset + tokens[-1].length
     else:
@@ -265,8 +269,8 @@ def parse_generic(
     non_terminal_rules: Dict[IntEnum, Parser],
     tokens: List[Token],
     code: str,
-    prune_hard_symbols: Optional[Set[IntEnum]] = None,
-    prune_soft_symbols: Optional[Set[IntEnum]] = None,
+    prune_hard_symbols: Set[IntEnum],
+    prune_soft_symbols: Set[IntEnum],
     root_token: str = "ROOT",
 ) -> Tree:
 
@@ -277,7 +281,7 @@ def parse_generic(
     tree = non_terminal_rules[root_symbol]
 
     # Prevent infinite recursion
-    if not isinstance(tree, NonTerminalParser):
+    if not isinstance(tree, (NonTerminalParser, TerminalParser)):
         tree.token_type = root_symbol
 
     try:
@@ -286,7 +290,7 @@ def parse_generic(
         assert parsed
         parsed.token_type = root_symbol
 
-        if parsed.token_count != len(code):
+        if parsed.token_count != len(tokens):
             raise InternalParseError(parsed.token_count, None)
 
     except InternalParseError as e:
@@ -298,11 +302,11 @@ def parse_generic(
     parsed = prune_zero_length(parsed)
     assert parsed
 
-    if prune_hard_symbols is not None:
+    if prune_hard_symbols:
         parsed = prune_by_symbol_types(parsed, prune_hard_symbols, prune_hard=True)
         assert parsed
 
-    if prune_soft_symbols is not None:
+    if prune_soft_symbols:
         parsed = prune_by_symbol_types(parsed, prune_soft_symbols, prune_hard=False)
         assert parsed
 

@@ -177,7 +177,7 @@ def load_parsed_grammar(  # noqa: C901
 
     for file_child in tree.children:
 
-        if file_child.token_type == NonTerminal.DECORATOR_LINE:
+        if file_child.token_type == NonTerminal.DECORATOR:
             decorator = file_child[0].value(tokens, code)
 
             if decorator.startswith("prune"):
@@ -187,7 +187,7 @@ def load_parsed_grammar(  # noqa: C901
             else:  # pragma: nocover
                 raise NotImplementedError
 
-        if file_child.token_type == NonTerminal.TOKEN_DEFINITION_LINE:
+        if file_child.token_type == NonTerminal.TOKEN_DEFINITION:
             name = file_child[0].value(tokens, code)
 
             if is_terminal:

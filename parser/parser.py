@@ -262,6 +262,7 @@ def parse_generic(
     prune_soft_symbols: Optional[Set[IntEnum]] = None,
     root_token: str = "ROOT",
 ) -> Tree:
+
     non_terminals_enum = _check_non_terminal_rules(non_terminal_rules)
 
     root_symbol = non_terminals_enum[root_token]

@@ -26,13 +26,12 @@ from typing import Dict, List, Optional, Set, Tuple
 
 class Terminal(IntEnum):
     internal_NON_TERMINAL_LITERAL = auto()
-    COMMENT_LINE = auto()
+    COMMENT = auto()
     INTEGER = auto()
-    NEWLINE = auto()
     LITERAL_EXPRESSION = auto()
     TOKEN_NAME = auto()
+    PERIOD = auto()
     WHITESPACE = auto()
-    WHITESPACE_LINE = auto()
 
 
 TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
@@ -42,12 +41,11 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
             "prune\ soft|prune\ hard|regex\(|,\.\.\.\}|token|\)\?|\)\{|\)\*|\)\+|\(|\||=|@|\)"
         ),
     ),
-    (Terminal.COMMENT_LINE, RegexTokenizer("//[^\n]*\n")),
-    (Terminal.WHITESPACE_LINE, RegexTokenizer(" *\n")),
-    (Terminal.WHITESPACE, RegexTokenizer(" *")),
-    (Terminal.NEWLINE, RegexTokenizer("\n")),
+    (Terminal.COMMENT, RegexTokenizer("//[^\n]*")),
+    (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
     (Terminal.INTEGER, RegexTokenizer("[0-9]+")),
+    (Terminal.PERIOD, RegexTokenizer("\\.")),
     (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\("|n|\\\\))*?"')),
 ]
 
@@ -59,13 +57,13 @@ class NonTerminal(IntEnum):
     BRACKET_EXPRESSION_REPEAT_RANGE = auto()
     CONCATENATION_EXPRESSION = auto()
     CONJUNCTION_EXPRESSION = auto()
-    DECORATOR_LINE = auto()
+    DECORATOR = auto()
     DECORATOR_VALUE = auto()
     LINE = auto()
     REGEX_EXPRESSION = auto()
     ROOT = auto()
     TOKEN_COMPOUND_EXPRESSION = auto()
-    TOKEN_DEFINITION_LINE = auto()
+    TOKEN_DEFINITION = auto()
     TOKEN_EXPRESSION = auto()
 
 
@@ -103,17 +101,16 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
         LiteralParser("|"),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),
-    NonTerminal.DECORATOR_LINE: ConcatenationParser(
+    NonTerminal.DECORATOR: ConcatenationParser(
         LiteralParser("@"),
         NonTerminalParser(NonTerminal.DECORATOR_VALUE),
-        TerminalParser(Terminal.NEWLINE),
     ),
     NonTerminal.DECORATOR_VALUE: OrParser(
         LiteralParser("prune hard"), LiteralParser("prune soft"), LiteralParser("token")
     ),
     NonTerminal.LINE: OrParser(
-        NonTerminalParser(NonTerminal.TOKEN_DEFINITION_LINE),
-        NonTerminalParser(NonTerminal.DECORATOR_LINE),
+        NonTerminalParser(NonTerminal.TOKEN_DEFINITION),
+        NonTerminalParser(NonTerminal.DECORATOR),
     ),
     NonTerminal.REGEX_EXPRESSION: ConcatenationParser(
         LiteralParser("regex("),
@@ -127,11 +124,11 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
         NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
         NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
     ),
-    NonTerminal.TOKEN_DEFINITION_LINE: ConcatenationParser(
+    NonTerminal.TOKEN_DEFINITION: ConcatenationParser(
         TerminalParser(Terminal.TOKEN_NAME),
         LiteralParser("="),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
-        TerminalParser(Terminal.NEWLINE),
+        TerminalParser(Terminal.PERIOD),
     ),
     NonTerminal.TOKEN_EXPRESSION: OrParser(
         TerminalParser(Terminal.LITERAL_EXPRESSION),
@@ -141,9 +138,7 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
 }
 
 PRUNED_TERMINALS: Set[IntEnum] = {
-    Terminal.COMMENT_LINE,
-    Terminal.NEWLINE,
-    Terminal.WHITESPACE_LINE,
+    Terminal.COMMENT,
     Terminal.WHITESPACE,
 }
 

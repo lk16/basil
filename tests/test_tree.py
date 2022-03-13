@@ -106,7 +106,7 @@ def test_prune_zero_length() -> None:
 
     assert pruned_tree
     assert len(pruned_tree.children) == 0
-    assert pruned_tree.symbol_type == SymbolsForTesting.A
+    assert pruned_tree.token_type == SymbolsForTesting.A
 
 
 def test_prune_by_symbol_type() -> None:
@@ -115,7 +115,7 @@ def test_prune_by_symbol_type() -> None:
 
     assert pruned_tree
     assert len(pruned_tree.children) == 1
-    assert pruned_tree.symbol_type == SymbolsForTesting.A
+    assert pruned_tree.token_type == SymbolsForTesting.A
 
     assert len(pruned_tree.children[0].children) == 0
 

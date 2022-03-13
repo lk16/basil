@@ -158,12 +158,13 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 }
 
 
-def parse(code: str) -> Tree:
+def parse(code: str) -> Tuple[List[Token], Tree]:
     tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)
-    return parse_generic(
+    tree: Tree = parse_generic(
         NON_TERMINAL_RULES,
         tokens,
         code,
         HARD_PRUNED_NON_TERMINALS,
         SOFT_PRUNED_NON_TERMINALS,
     )
+    return tokens, tree

@@ -17,7 +17,7 @@ class Token:
 class Tree:
     token_offset: int
     token_count: int
-    symbol_type: Optional[IntEnum]
+    token_type: Optional[IntEnum]
     children: List["Tree"]
 
     def size(self) -> int:  # pragma: nocover
@@ -60,7 +60,7 @@ def _prune_by_symbol_types_hard(
     tree: Tree, symbol_types: Set[IntEnum]
 ) -> Optional[Tree]:
     def prune_condition(tree: Tree) -> bool:
-        return tree.symbol_type in symbol_types
+        return tree.token_type in symbol_types
 
     return prune_tree(tree, prune_condition)
 
@@ -74,7 +74,7 @@ def _prune_by_symbol_types_soft(
         with_symbol: List[Tree] = []
 
         for child in tree.children:
-            if child.symbol_type in symbol_types:
+            if child.token_type in symbol_types:
                 with_symbol += get_descendants_without_symbol_types(child, symbol_types)
             else:
                 with_symbol.append(
@@ -94,13 +94,13 @@ def _prune_by_symbol_types_soft(
         Tree(
             child.token_offset,
             child.token_count,
-            child.symbol_type,
+            child.token_type,
             get_descendants_without_symbol_types(child, symbol_types),
         )
         for child in descendants_with_symbol
     ]
 
-    return Tree(tree.token_offset, tree.token_count, tree.symbol_type, children)
+    return Tree(tree.token_offset, tree.token_count, tree.token_type, children)
 
 
 def prune_tree(
@@ -127,13 +127,13 @@ def prune_no_symbol(tree: Optional[Tree]) -> Optional[Tree]:
     if not tree:
         return None
 
-    assert tree.symbol_type is not None
+    assert tree.token_type is not None
 
     def get_descendants_with_symbol(tree: Tree) -> List[Tree]:
         with_symbol: List[Tree] = []
 
         for child in tree.children:
-            if child.symbol_type is None:
+            if child.token_type is None:
                 with_symbol += get_descendants_with_symbol(child)
             else:
                 with_symbol.append(
@@ -145,6 +145,6 @@ def prune_no_symbol(tree: Optional[Tree]) -> Optional[Tree]:
     return Tree(
         tree.token_offset,
         tree.token_count,
-        tree.symbol_type,
+        tree.token_type,
         get_descendants_with_symbol(tree),
     )

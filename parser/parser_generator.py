@@ -3,7 +3,7 @@ import sys
 from dataclasses import dataclass
 from parser.exceptions import ParseError
 from parser.grammar.parser import NonTerminal, Terminal, parse
-from parser.tree import Tree
+from parser.tree import Token, Tree
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
@@ -17,20 +17,24 @@ class UnknownTokenError(Exception):
 
 
 def tree_to_python_parser_expression(
-    tree: Tree, code: str, terminal_names: Set[str], non_terminal_names: Set[str]
+    tree: Tree,
+    tokens: List[Token],
+    code: str,
+    terminal_names: Set[str],
+    non_terminal_names: Set[str],
 ) -> str:
-    if tree.symbol_type == Terminal.LITERAL_EXPRESSION:
-        value = tree.value(code)
+    if tree.token_type == Terminal.LITERAL_EXPRESSION:
+        value = tree.value(tokens, code)
         return f"LiteralParser({value})"
 
-    elif tree.symbol_type == NonTerminal.REGEX_EXPRESSION:
-        regex_value = tree[0].value(code)
+    elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
+        regex_value = tree[0].value(tokens, code)
         return f"RegexTokenizer({regex_value})"
 
-    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
-        bracket_end = tree[1].value(code)
+    elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
+        bracket_end = tree[1].value(tokens, code)
         child_expr = tree_to_python_parser_expression(
-            tree[0], code, terminal_names, non_terminal_names
+            tree[0], tokens, code, terminal_names, non_terminal_names
         )
 
         if bracket_end == ")":
@@ -42,17 +46,17 @@ def tree_to_python_parser_expression(
         elif bracket_end == ")?":
             return f"OptionalParser({child_expr})"
         elif bracket_end.startswith("){"):
-            min_repeats = int(tree[1][0][0].value(code))
+            min_repeats = int(tree[1][0][0].value(tokens, code))
             return f"RepeatParser({child_expr}, min_repeats={min_repeats})"
         else:  # pragma: nocover
             raise NotImplementedError
 
-    elif tree.symbol_type == NonTerminal.CONCATENATION_EXPRESSION:
+    elif tree.token_type == NonTerminal.CONCATENATION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == NonTerminal.CONCATENATION_EXPRESSION:
+        while tail.token_type == NonTerminal.CONCATENATION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -62,19 +66,19 @@ def tree_to_python_parser_expression(
             "ConcatenationParser("
             + ", ".join(
                 tree_to_python_parser_expression(
-                    concat_item, code, terminal_names, non_terminal_names
+                    concat_item, tokens, code, terminal_names, non_terminal_names
                 )
                 for concat_item in conjunc_items
             )
             + ")"
         )
 
-    elif tree.symbol_type == NonTerminal.CONJUNCTION_EXPRESSION:
+    elif tree.token_type == NonTerminal.CONJUNCTION_EXPRESSION:
         conjunc_items = [tree[0]]
 
         tail = tree[1]
 
-        while tail.symbol_type == NonTerminal.CONJUNCTION_EXPRESSION:
+        while tail.token_type == NonTerminal.CONJUNCTION_EXPRESSION:
             conjunc_items.append(tail[0])
             tail = tail[1]
 
@@ -84,20 +88,20 @@ def tree_to_python_parser_expression(
             "OrParser("
             + ", ".join(
                 tree_to_python_parser_expression(
-                    conjunc_item, code, terminal_names, non_terminal_names
+                    conjunc_item, tokens, code, terminal_names, non_terminal_names
                 )
                 for conjunc_item in conjunc_items
             )
             + ")"
         )
 
-    elif tree.symbol_type == Terminal.TOKEN_NAME:
-        token_name = tree.value(code)
+    elif tree.token_type == Terminal.TOKEN_NAME:
+        token_name = tree.value(tokens, code)
 
         if token_name in terminal_names:
-            return "TerminalParser(Terminal." + tree.value(code) + ")"
+            return "TerminalParser(Terminal." + tree.value(tokens, code) + ")"
         elif token_name in non_terminal_names:
-            return "NonTerminalParser(NonTerminal." + tree.value(code) + ")"
+            return "NonTerminalParser(NonTerminal." + tree.value(tokens, code) + ")"
         else:
             raise UnknownTokenError(token_name)
 
@@ -111,18 +115,18 @@ class InvalidTree(Exception):
 
 
 def check_terminal_tree(tree: Tree) -> None:
-    if tree.symbol_type != NonTerminal.REGEX_EXPRESSION:
+    if tree.token_type != NonTerminal.REGEX_EXPRESSION:
         raise InvalidTree("only REGEX_EXPRESSION is allowed")
 
 
 def check_non_terminal_tree(tree: Tree) -> None:
-    if tree.symbol_type == NonTerminal.REGEX_EXPRESSION:
-        raise InvalidTree(tree.symbol_type.name)
-    elif tree.symbol_type in [Terminal.TOKEN_NAME, Terminal.LITERAL_EXPRESSION]:
+    if tree.token_type == NonTerminal.REGEX_EXPRESSION:
+        raise InvalidTree(tree.token_type.name)
+    elif tree.token_type in [Terminal.TOKEN_NAME, Terminal.LITERAL_EXPRESSION]:
         pass
-    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
+    elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
         check_non_terminal_tree(tree[0])
-    elif tree.symbol_type in [
+    elif tree.token_type in [
         NonTerminal.CONCATENATION_EXPRESSION,
         NonTerminal.CONJUNCTION_EXPRESSION,
     ]:
@@ -132,21 +136,21 @@ def check_non_terminal_tree(tree: Tree) -> None:
         raise NotImplementedError
 
 
-def get_non_terminal_literals(tree: Tree, code: str) -> List[str]:
-    if tree.symbol_type in [NonTerminal.REGEX_EXPRESSION, Terminal.TOKEN_NAME]:
+def get_non_terminal_literals(tree: Tree, tokens: List[Token], code: str) -> List[str]:
+    if tree.token_type in [NonTerminal.REGEX_EXPRESSION, Terminal.TOKEN_NAME]:
         return []
-    if tree.symbol_type == Terminal.LITERAL_EXPRESSION:
-        literal_value = tree.value(code)[1:-1]
+    if tree.token_type == Terminal.LITERAL_EXPRESSION:
+        literal_value = tree.value(tokens, code)[1:-1]
         return [literal_value]
-    elif tree.symbol_type == NonTerminal.BRACKET_EXPRESSION:
-        return get_non_terminal_literals(tree[0], code)
-    elif tree.symbol_type in [
+    elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
+        return get_non_terminal_literals(tree[0], tokens, code)
+    elif tree.token_type in [
         NonTerminal.CONCATENATION_EXPRESSION,
         NonTerminal.CONJUNCTION_EXPRESSION,
     ]:
         literals = []
         for child in tree.children:
-            literals += get_non_terminal_literals(child, code)
+            literals += get_non_terminal_literals(child, tokens, code)
         return literals
     else:  # pragma: nocover
         raise NotImplementedError
@@ -162,17 +166,19 @@ class ParsedGrammar:
     pruned_terminals: Set[str]
 
 
-def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:  # noqa: C901
+def load_parsed_grammar(  # noqa: C901
+    tree: Tree, tokens: List[Token], code: str
+) -> ParsedGrammar:
 
     parsed_grammar = ParsedGrammar([], [], set(), set(), [], set())
 
     prune_decorator: Optional[str] = None
     is_terminal = False
 
-    for file_child in file.children:
+    for file_child in tree.children:
 
-        if file_child.symbol_type == NonTerminal.DECORATOR_LINE:
-            decorator = file_child[0].value(code)
+        if file_child.token_type == NonTerminal.DECORATOR_LINE:
+            decorator = file_child[0].value(tokens, code)
 
             if decorator.startswith("prune"):
                 prune_decorator = decorator
@@ -181,8 +187,8 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:  # noqa: C901
             else:  # pragma: nocover
                 raise NotImplementedError
 
-        if file_child.symbol_type == NonTerminal.TOKEN_DEFINITION_LINE:
-            name = file_child[0].value(code)
+        if file_child.token_type == NonTerminal.TOKEN_DEFINITION_LINE:
+            name = file_child[0].value(tokens, code)
 
             if is_terminal:
                 terminal = (name, file_child[1])
@@ -214,7 +220,7 @@ def load_parsed_grammar(file: Tree, code: str) -> ParsedGrammar:  # noqa: C901
     non_terminal_literals: List[str] = []
 
     for _, tree in parsed_grammar.non_terminals:
-        non_terminal_literals += get_non_terminal_literals(tree, code)
+        non_terminal_literals += get_non_terminal_literals(tree, tokens, code)
 
     # remove duplicates and sort such that longest items come first
     parsed_grammar.non_terminal_literals = sorted(
@@ -242,10 +248,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     """
 
     code = grammar_path.read_text()
-    tree = parse(code)
+    tokens, tree = parse(code)
 
-    assert tree.symbol_type == NonTerminal.ROOT
-    parsed_grammar = load_parsed_grammar(tree, code)
+    assert tree.token_type == NonTerminal.ROOT
+    parsed_grammar = load_parsed_grammar(tree, tokens, code)
 
     terminal_names = {item[0] for item in parsed_grammar.terminals}
     non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
@@ -297,7 +303,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += f"    (Terminal.internal_NON_TERMINAL_LITERAL, {non_terminal_literal_parser_expr}),\n"
     for non_terminal_name, tree in parsed_grammar.terminals:
         parser_expr = tree_to_python_parser_expression(
-            tree, code, terminal_names, non_terminal_names
+            tree, tokens, code, terminal_names, non_terminal_names
         )
         parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
     parser_script += "]\n\n\n"
@@ -312,7 +318,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += f"    NonTerminal.internal_NON_TERMINAL_LITERAL: TerminalParser(Terminal.internal_NON_TERMINAL_LITERAL),\n"
     for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
         parser_expr = tree_to_python_parser_expression(
-            tree, code, terminal_names, non_terminal_names
+            tree, tokens, code, terminal_names, non_terminal_names
         )
         parser_script += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
     parser_script += "}\n\n\n"
@@ -341,9 +347,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     else:
         parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
-    parser_script += "def parse(code: str) -> Tree:\n"
+    parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
     parser_script += "    tokens: List[Token] = tokenize(code, TERMINAL_RULES)\n"
-    parser_script += "    return parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS)\n"
+    parser_script += "    tree: Tree = parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS)\n"
+    parser_script += "    return tokens, tree\n"
 
     # format with black
     parser_script = format_str(parser_script, mode=FileMode())

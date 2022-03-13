@@ -55,10 +55,10 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
     (Terminal.DECORATOR_TOKEN, RegexTokenizer("token")),
     (Terminal.EQUALS, RegexTokenizer("=")),
     (Terminal.BRACKET_OPEN, RegexTokenizer("\\(")),
-    (Terminal.BRACKET_CLOSE, RegexTokenizer("\\)")),
     (Terminal.BRACKET_AT_LEAST_ONCE, RegexTokenizer("\\)\\+")),
     (Terminal.BRACKET_REPEAT, RegexTokenizer("\\)\\*")),
     (Terminal.BRACKET_OPTIONAL, RegexTokenizer("\\)\\?")),
+    (Terminal.BRACKET_CLOSE, RegexTokenizer("\\)")),
     (Terminal.REGEX_START, RegexTokenizer("regex\\(")),
     (Terminal.VERTICAL_BAR, RegexTokenizer("\\|")),
 ]

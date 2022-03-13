@@ -38,9 +38,6 @@ EQUALS = regex("=") .
 BRACKET_OPEN = regex("\\(") .
 
 @ token
-BRACKET_CLOSE = regex("\\)") .
-
-@ token
 BRACKET_AT_LEAST_ONCE = regex("\\)\\+") .
 
 @ token
@@ -49,11 +46,15 @@ BRACKET_REPEAT = regex("\\)\\*") .
 @ token
 BRACKET_OPTIONAL = regex("\\)\\?") .
 
+// needs to be after other closing brackets
 @ token
-REGEX_START = regex("regex\\(")
+BRACKET_CLOSE = regex("\\)") .
 
 @ token
-VERTICAL_BAR = regex("\\|")
+REGEX_START = regex("regex\\(") .
+
+@ token
+VERTICAL_BAR = regex("\\|") .
 
 // ---
 

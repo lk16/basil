@@ -48,7 +48,7 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
     (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
     (Terminal.PERIOD, RegexTokenizer("\\.")),
-    (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\("|n|\\\\))*?"')),
+    (Terminal.LITERAL_EXPRESSION, RegexTokenizer("\"([^\\\\]|\\\\.)*?\"")),
     (Terminal.DECORATOR_MARKER, RegexTokenizer("@")),
     (Terminal.DECORATOR_PRUNE_HARD, RegexTokenizer("prune hard")),
     (Terminal.DECORATOR_PRUNE_SOFT, RegexTokenizer("prune soft")),

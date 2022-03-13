@@ -17,19 +17,19 @@ TOKEN_NAME = regex("[A-Z_]+") .
 PERIOD = regex("\\.") .
 
 @ token
-LITERAL_EXPRESSION = regex("\"([^\\\\]|\\\\(\"|n|\\\\))*?\"") .
+LITERAL_EXPRESSION = regex("\"([^\\\\]|\\\\.)*?\"") .
 
 @ token
 DECORATOR_MARKER = regex("@") .
 
 @ token
-DECORATOR_PRUNE_HARD = "regex("prune hard") .
+DECORATOR_PRUNE_HARD = regex("prune hard") .
 
 @ token
-DECORATOR_PRUNE_SOFT = "regex("prune soft") .
+DECORATOR_PRUNE_SOFT = regex("prune soft") .
 
 @ token
-DECORATOR_TOKEN = "regex("token") .
+DECORATOR_TOKEN = regex("token") .
 
 @ token
 EQUALS = regex("=") .

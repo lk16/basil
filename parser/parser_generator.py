@@ -286,19 +286,17 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    TerminalParser,\n"
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"
-    parser_script += "from parser.tokenizer import RegexTokenizer, tokenize"
+    parser_script += "from parser.tokenizer import RegexTokenizer, tokenize\n"
     parser_script += "from parser.tree import Tree, Token\n"
     parser_script += "from typing import Dict, Optional, Set, List, Tuple\n"
     parser_script += "\n\n"
 
     parser_script += "class Terminal(IntEnum):\n"
-    parser_script += f"    internal_NON_TERMINAL_LITERAL = auto()\n"
     for terminal_name, _ in sorted(parsed_grammar.terminals):
         parser_script += f"    {terminal_name} = auto()\n"
     parser_script += "\n\n"
 
     parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [\n"
-    parser_script += f"    (Terminal.internal_NON_TERMINAL_LITERAL, {non_terminal_literal_parser_expr}),\n"
     for non_terminal_name, tree in parsed_grammar.terminals:
         parser_expr = tree_to_python_parser_expression(
             tree, tokens, code, terminal_names, non_terminal_names
@@ -307,13 +305,11 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "]\n\n\n"
 
     parser_script += "class NonTerminal(IntEnum):\n"
-    parser_script += f"    internal_NON_TERMINAL_LITERAL = auto()\n"
     for non_terminal_name, _ in sorted(parsed_grammar.non_terminals):
         parser_script += f"    {non_terminal_name} = auto()\n"
     parser_script += "\n\n"
 
     parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {\n"
-    parser_script += f"    NonTerminal.internal_NON_TERMINAL_LITERAL: TerminalParser(Terminal.internal_NON_TERMINAL_LITERAL),\n"
     for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
         parser_expr = tree_to_python_parser_expression(
             tree, tokens, code, terminal_names, non_terminal_names

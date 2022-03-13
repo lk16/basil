@@ -35,12 +35,6 @@ class Terminal(IntEnum):
 
 
 TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
-    (
-        Terminal.internal_NON_TERMINAL_LITERAL,
-        RegexTokenizer(
-            "prune\ soft|prune\ hard|regex\(|,\.\.\.\}|token|\)\?|\)\{|\)\*|\)\+|\(|\||=|@|\)"
-        ),
-    ),
     (Terminal.COMMENT, RegexTokenizer("//[^\n]*")),
     (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
@@ -68,9 +62,6 @@ class NonTerminal(IntEnum):
 
 
 NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
-    NonTerminal.internal_NON_TERMINAL_LITERAL: TerminalParser(
-        Terminal.internal_NON_TERMINAL_LITERAL
-    ),
     NonTerminal.BRACKET_EXPRESSION: ConcatenationParser(
         LiteralParser("("),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),

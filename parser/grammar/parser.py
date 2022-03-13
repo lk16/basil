@@ -126,10 +126,10 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     ),
     NonTerminal.ROOT: RepeatParser(NonTerminalParser(NonTerminal.LINE)),
     NonTerminal.TOKEN_COMPOUND_EXPRESSION: OrParser(
-        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
         NonTerminalParser(NonTerminal.CONCATENATION_EXPRESSION),
         NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
         NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
+        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
     ),
     NonTerminal.TOKEN_DEFINITION: ConcatenationParser(
         TerminalParser(Terminal.TOKEN_NAME),

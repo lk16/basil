@@ -1,4 +1,3 @@
-import re
 import sys
 from dataclasses import dataclass
 from parser.exceptions import ParseError
@@ -255,14 +254,6 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     terminal_names = {item[0] for item in parsed_grammar.terminals}
     non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
-
-    non_terminal_literal_parser_expr = (
-        'RegexTokenizer("'
-        + "|".join(
-            re.escape(literal) for literal in parsed_grammar.non_terminal_literals
-        )
-        + '")'
-    )
 
     prefix_comments = "# ===================================== #\n"
     prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"

@@ -9,7 +9,6 @@
 from enum import IntEnum, auto
 from parser.parser import (
     ConcatenationParser,
-    LiteralParser,
     NonTerminalParser,
     OptionalParser,
     OrParser,
@@ -25,12 +24,22 @@ from typing import Dict, List, Optional, Set, Tuple
 
 
 class Terminal(IntEnum):
-    internal_NON_TERMINAL_LITERAL = auto()
+    BRACKET_AT_LEAST_ONCE = auto()
+    BRACKET_CLOSE = auto()
+    BRACKET_OPEN = auto()
+    BRACKET_OPTIONAL = auto()
+    BRACKET_REPEAT = auto()
     COMMENT = auto()
-    INTEGER = auto()
+    DECORATOR_MARKER = auto()
+    DECORATOR_PRUNE_HARD = auto()
+    DECORATOR_PRUNE_SOFT = auto()
+    DECORATOR_TOKEN = auto()
+    EQUALS = auto()
     LITERAL_EXPRESSION = auto()
-    TOKEN_NAME = auto()
     PERIOD = auto()
+    REGEX_START = auto()
+    TOKEN_NAME = auto()
+    VERTICAL_BAR = auto()
     WHITESPACE = auto()
 
 
@@ -38,17 +47,26 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
     (Terminal.COMMENT, RegexTokenizer("//[^\n]*")),
     (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
-    (Terminal.INTEGER, RegexTokenizer("[0-9]+")),
     (Terminal.PERIOD, RegexTokenizer("\\.")),
     (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\("|n|\\\\))*?"')),
+    (Terminal.DECORATOR_MARKER, RegexTokenizer("@")),
+    (Terminal.DECORATOR_PRUNE_HARD, RegexTokenizer("prune hard")),
+    (Terminal.DECORATOR_PRUNE_SOFT, RegexTokenizer("prune soft")),
+    (Terminal.DECORATOR_TOKEN, RegexTokenizer("token")),
+    (Terminal.EQUALS, RegexTokenizer("=")),
+    (Terminal.BRACKET_OPEN, RegexTokenizer("\\(")),
+    (Terminal.BRACKET_CLOSE, RegexTokenizer("\\)")),
+    (Terminal.BRACKET_AT_LEAST_ONCE, RegexTokenizer("\\)\\+")),
+    (Terminal.BRACKET_REPEAT, RegexTokenizer("\\)\\*")),
+    (Terminal.BRACKET_OPTIONAL, RegexTokenizer("\\)\\?")),
+    (Terminal.REGEX_START, RegexTokenizer("regex\\(")),
+    (Terminal.VERTICAL_BAR, RegexTokenizer("\\|")),
 ]
 
 
 class NonTerminal(IntEnum):
-    internal_NON_TERMINAL_LITERAL = auto()
     BRACKET_EXPRESSION = auto()
     BRACKET_EXPRESSION_END = auto()
-    BRACKET_EXPRESSION_REPEAT_RANGE = auto()
     CONCATENATION_EXPRESSION = auto()
     CONJUNCTION_EXPRESSION = auto()
     DECORATOR = auto()
@@ -63,19 +81,15 @@ class NonTerminal(IntEnum):
 
 NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     NonTerminal.BRACKET_EXPRESSION: ConcatenationParser(
-        LiteralParser("("),
+        TerminalParser(Terminal.BRACKET_OPEN),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
         NonTerminalParser(NonTerminal.BRACKET_EXPRESSION_END),
     ),
     NonTerminal.BRACKET_EXPRESSION_END: OrParser(
-        LiteralParser(")"),
-        LiteralParser(")+"),
-        LiteralParser(")*"),
-        LiteralParser(")?"),
-        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION_REPEAT_RANGE),
-    ),
-    NonTerminal.BRACKET_EXPRESSION_REPEAT_RANGE: ConcatenationParser(
-        LiteralParser("){"), TerminalParser(Terminal.INTEGER), LiteralParser(",...}")
+        TerminalParser(Terminal.BRACKET_CLOSE),
+        TerminalParser(Terminal.BRACKET_AT_LEAST_ONCE),
+        TerminalParser(Terminal.BRACKET_REPEAT),
+        TerminalParser(Terminal.BRACKET_OPTIONAL),
     ),
     NonTerminal.CONCATENATION_EXPRESSION: ConcatenationParser(
         OrParser(
@@ -89,24 +103,26 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     ),
     NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationParser(
         NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
-        LiteralParser("|"),
+        TerminalParser(Terminal.VERTICAL_BAR),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),
     NonTerminal.DECORATOR: ConcatenationParser(
-        LiteralParser("@"),
+        TerminalParser(Terminal.DECORATOR_MARKER),
         NonTerminalParser(NonTerminal.DECORATOR_VALUE),
     ),
     NonTerminal.DECORATOR_VALUE: OrParser(
-        LiteralParser("prune hard"), LiteralParser("prune soft"), LiteralParser("token")
+        TerminalParser(Terminal.DECORATOR_PRUNE_HARD),
+        TerminalParser(Terminal.DECORATOR_PRUNE_SOFT),
+        TerminalParser(Terminal.DECORATOR_TOKEN),
     ),
     NonTerminal.LINE: OrParser(
         NonTerminalParser(NonTerminal.TOKEN_DEFINITION),
         NonTerminalParser(NonTerminal.DECORATOR),
     ),
     NonTerminal.REGEX_EXPRESSION: ConcatenationParser(
-        LiteralParser("regex("),
+        TerminalParser(Terminal.REGEX_START),
         TerminalParser(Terminal.LITERAL_EXPRESSION),
-        LiteralParser(")"),
+        TerminalParser(Terminal.BRACKET_CLOSE),
     ),
     NonTerminal.ROOT: RepeatParser(NonTerminalParser(NonTerminal.LINE)),
     NonTerminal.TOKEN_COMPOUND_EXPRESSION: OrParser(
@@ -117,12 +133,11 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     ),
     NonTerminal.TOKEN_DEFINITION: ConcatenationParser(
         TerminalParser(Terminal.TOKEN_NAME),
-        LiteralParser("="),
+        TerminalParser(Terminal.EQUALS),
         NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
         TerminalParser(Terminal.PERIOD),
     ),
     NonTerminal.TOKEN_EXPRESSION: OrParser(
-        TerminalParser(Terminal.LITERAL_EXPRESSION),
         TerminalParser(Terminal.TOKEN_NAME),
         NonTerminalParser(NonTerminal.REGEX_EXPRESSION),
     ),

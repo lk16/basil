@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from enum import IntEnum
+from parser.exceptions import InternalParseError
 from typing import List, Optional, Set, Tuple
 
 
@@ -55,6 +56,8 @@ def tokenize(
     offset = 0
 
     while offset < len(code):
+        token_match = False
+
         for token_type, tokenizer in terminal_rules:
             token_length = tokenizer.tokenize(code, offset)
 
@@ -63,6 +66,11 @@ def tokenize(
                     tokens.append(Token(token_type, offset, token_length))
 
                 offset += token_length
+                token_match = True
                 break
+
+        if not token_match:
+            # TODO use internal tokenize error
+            raise InternalParseError(offset, None)
 
     return tokens

@@ -1,4 +1,5 @@
 from enum import IntEnum, auto
+from parser.exceptions import InternalParseError
 from parser.tokenizer import RegexTokenizer, Token, _check_terminal_rules, tokenize
 from typing import List, Set, Tuple
 
@@ -104,3 +105,22 @@ def test_tokenize_pruned_terminal() -> None:
 
     assert tokens[0].value(code) == "a"
     assert tokens[1].value(code) == "c"
+
+
+def test_tokenize_fail() -> None:
+    class DummyEnum(IntEnum):
+        A = auto()
+        B = auto()
+        C = auto()
+
+    code = "d"
+    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+        (DummyEnum.A, RegexTokenizer("a")),
+        (DummyEnum.B, RegexTokenizer("b")),
+        (DummyEnum.C, RegexTokenizer("c")),
+    ]
+
+    pruned_terminals: Set[IntEnum] = {DummyEnum.B}
+
+    with pytest.raises(InternalParseError):
+        tokenize(code, terminal_rules, pruned_terminals)

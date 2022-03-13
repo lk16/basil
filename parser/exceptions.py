@@ -39,6 +39,13 @@ class ParseError(Exception):
         super().__init__(msg)
 
 
+class InternalTokenizeError(Exception):
+    def __init__(self, offset: int, symbol_type: Optional[IntEnum]) -> None:
+        self.token_offset = offset
+        self.symbol_type = symbol_type
+        super().__init__()
+
+
 class UnhandledSymbolType(Exception):
     """
     Indicates rewrite rules misses an entry.

@@ -1,16 +1,7 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
+from parser.tokenizer import Token
 from typing import Callable, List, Optional, Set
-
-
-@dataclass
-class Token:
-    type: IntEnum
-    offset: int
-    length: int
-
-    def value(self, code: str) -> str:
-        return code[self.offset : self.offset + self.length]
 
 
 @dataclass

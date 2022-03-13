@@ -46,6 +46,7 @@ class OrParser(Parser):
         for child in self.children:
             try:
                 parsed = child.parse(tokens, offset, non_terminal_rules)
+                break
             except InternalParseError:
                 continue
 
@@ -160,7 +161,10 @@ class TerminalParser(Parser):
         offset: int,
         non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
-        token = tokens[offset]
+        try:
+            token = tokens[offset]
+        except IndexError:
+            raise InternalParseError(offset, self.token_type)
 
         if token.type != self.token_type:
             raise InternalParseError(offset, self.token_type)
@@ -209,7 +213,10 @@ class LiteralParser(Parser):
 def humanize_parse_error(
     code: str, tokens: List[Token], e: InternalParseError
 ) -> ParseError:
-    offset = tokens[e.token_offset].offset
+    if e.token_offset == len(tokens):
+        offset = tokens[-1].offset + tokens[-1].length
+    else:
+        offset = tokens[e.token_offset].offset
 
     before_offset = code[:offset]
     line_number = 1 + before_offset.count("\n")

@@ -1,16 +1,23 @@
 import re
+from dataclasses import dataclass
 from enum import IntEnum
-from parser.tree import Token
 from typing import List, Optional, Set, Tuple
+
+
+@dataclass
+class Token:
+    type: IntEnum
+    offset: int
+    length: int
+
+    def value(self, code: str) -> str:
+        return code[self.offset : self.offset + self.length]
 
 
 class RegexTokenizer:
     def __init__(self, regex: str):
         if regex.startswith("^"):
-            raise ValueError(
-                "Regex should not start with a caret '^' character"
-                + "it's added in __init__() now."
-            )
+            raise ValueError("Regex should not start with a caret '^' character")
 
         self.regex = re.compile(f"^{regex}")
 
@@ -28,12 +35,21 @@ class RegexTokenizer:
         return match_length
 
 
+def _check_terminal_rules(terminal_rules: List[Tuple[IntEnum, RegexTokenizer]]) -> None:
+    enum_type = type(terminal_rules[0][0])
+
+    found_enum_values = {item[0] for item in terminal_rules}
+
+    if found_enum_values != set(enum_type) or len(terminal_rules) != len(enum_type):
+        raise ValueError("Terminal rules has duplicates or missing items.")
+
+
 def tokenize(
     code: str,
     terminal_rules: List[Tuple[IntEnum, RegexTokenizer]],
     pruned_terminals: Set[IntEnum],
 ) -> List[Token]:
-    # TODO check terminal_rules
+    _check_terminal_rules(terminal_rules)
 
     tokens: List[Token] = []
     offset = 0

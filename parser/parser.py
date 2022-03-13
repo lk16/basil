@@ -41,7 +41,7 @@ class OrParser(Parser):
         offset: int,
         non_terminal_rules: Dict[IntEnum, "Parser"],
     ) -> Tree:
-        longest_parsed: Optional[Tree] = None
+        parsed: Optional[Tree] = None
 
         for child in self.children:
             try:
@@ -49,19 +49,14 @@ class OrParser(Parser):
             except InternalParseError:
                 continue
 
-            if not longest_parsed:
-                longest_parsed = parsed
-            elif parsed.token_count > longest_parsed.token_count:
-                longest_parsed = parsed
-
-        if not longest_parsed:
+        if not parsed:
             raise InternalParseError(offset, self.token_type)
 
         return Tree(
-            longest_parsed.token_offset,
-            longest_parsed.token_count,
+            parsed.token_offset,
+            parsed.token_count,
             self.token_type,
-            [longest_parsed],
+            [parsed],
         )
 
 

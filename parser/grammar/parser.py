@@ -14,13 +14,12 @@ from parser.parser import (
     OptionalParser,
     OrParser,
     Parser,
-    RegexTokenizer,
     RepeatParser,
     TerminalParser,
     Token,
     parse_generic,
-    tokenize,
 )
+from parser.tokenizer import RegexTokenizer, tokenize
 from parser.tree import Tree
 from typing import Dict, List, Optional, Set, Tuple
 

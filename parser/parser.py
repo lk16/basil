@@ -282,6 +282,7 @@ def parse_generic(
 
     parsed = prune_zero_length(parsed)
     assert parsed
+    assert False, "prune_no_symbol() flattens entire tree"
 
     if prune_hard_symbols:
         parsed = prune_by_symbol_types(parsed, prune_hard_symbols, prune_hard=True)

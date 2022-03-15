@@ -6,7 +6,7 @@
 # fmt: off
 # nopycln: file
 
-from enum import IntEnum, auto
+from enum import IntEnum
 from parser.parser import (
     ConcatenationParser,
     NonTerminalParser,
@@ -21,26 +21,30 @@ from parser.parser import (
 from parser.tokenizer import RegexTokenizer, tokenize
 from parser.tree import Tree
 from typing import Dict, List, Optional, Set, Tuple
+from itertools import count
 
+
+# We can't use enum.auto, since Terminal and NonTerminal will have colliding values
+next_offset = count(start=1)
 
 class Terminal(IntEnum):
-    BRACKET_AT_LEAST_ONCE = auto()
-    BRACKET_CLOSE = auto()
-    BRACKET_OPEN = auto()
-    BRACKET_OPTIONAL = auto()
-    BRACKET_REPEAT = auto()
-    COMMENT = auto()
-    DECORATOR_MARKER = auto()
-    DECORATOR_PRUNE_HARD = auto()
-    DECORATOR_PRUNE_SOFT = auto()
-    DECORATOR_TOKEN = auto()
-    EQUALS = auto()
-    LITERAL_EXPRESSION = auto()
-    PERIOD = auto()
-    REGEX_START = auto()
-    TOKEN_NAME = auto()
-    VERTICAL_BAR = auto()
-    WHITESPACE = auto()
+    BRACKET_AT_LEAST_ONCE = next(next_offset)
+    BRACKET_CLOSE = next(next_offset)
+    BRACKET_OPEN = next(next_offset)
+    BRACKET_OPTIONAL = next(next_offset)
+    BRACKET_REPEAT = next(next_offset)
+    COMMENT = next(next_offset)
+    DECORATOR_MARKER = next(next_offset)
+    DECORATOR_PRUNE_HARD = next(next_offset)
+    DECORATOR_PRUNE_SOFT = next(next_offset)
+    DECORATOR_TOKEN = next(next_offset)
+    EQUALS = next(next_offset)
+    LITERAL_EXPRESSION = next(next_offset)
+    PERIOD = next(next_offset)
+    REGEX_START = next(next_offset)
+    TOKEN_NAME = next(next_offset)
+    VERTICAL_BAR = next(next_offset)
+    WHITESPACE = next(next_offset)
 
 
 TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
@@ -65,18 +69,18 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
 
 
 class NonTerminal(IntEnum):
-    BRACKET_EXPRESSION = auto()
-    BRACKET_EXPRESSION_END = auto()
-    CONCATENATION_EXPRESSION = auto()
-    CONJUNCTION_EXPRESSION = auto()
-    DECORATOR = auto()
-    DECORATOR_VALUE = auto()
-    LINE = auto()
-    REGEX_EXPRESSION = auto()
-    ROOT = auto()
-    TOKEN_COMPOUND_EXPRESSION = auto()
-    TOKEN_DEFINITION = auto()
-    TOKEN_EXPRESSION = auto()
+    BRACKET_EXPRESSION = next(next_offset)
+    BRACKET_EXPRESSION_END = next(next_offset)
+    CONCATENATION_EXPRESSION = next(next_offset)
+    CONJUNCTION_EXPRESSION = next(next_offset)
+    DECORATOR = next(next_offset)
+    DECORATOR_VALUE = next(next_offset)
+    LINE = next(next_offset)
+    REGEX_EXPRESSION = next(next_offset)
+    ROOT = next(next_offset)
+    TOKEN_COMPOUND_EXPRESSION = next(next_offset)
+    TOKEN_DEFINITION = next(next_offset)
+    TOKEN_EXPRESSION = next(next_offset)
 
 
 NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {

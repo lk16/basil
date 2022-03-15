@@ -25,6 +25,7 @@ from typing import Dict, List, Optional, Set, Tuple
 # We can't use enum.auto, since Terminal and NonTerminal will have colliding values
 next_offset = count(start=1)
 
+
 class Terminal(IntEnum):
     BRACKET_AT_LEAST_ONCE = next(next_offset)
     BRACKET_CLOSE = next(next_offset)
@@ -50,7 +51,7 @@ TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
     (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
     (Terminal.PERIOD, RegexTokenizer("\\.")),
-    (Terminal.LITERAL_EXPRESSION, RegexTokenizer("\"([^\\\\]|\\\\.)*?\"")),
+    (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\.)*?"')),
     (Terminal.DECORATOR_MARKER, RegexTokenizer("@")),
     (Terminal.DECORATOR_PRUNE_HARD, RegexTokenizer("prune hard")),
     (Terminal.DECORATOR_PRUNE_SOFT, RegexTokenizer("prune soft")),
@@ -145,10 +146,12 @@ NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
     ),
 }
 
+
 PRUNED_TERMINALS: Set[IntEnum] = {
     Terminal.COMMENT,
     Terminal.WHITESPACE,
 }
+
 
 HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()
 

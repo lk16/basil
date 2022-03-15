@@ -7,6 +7,7 @@
 # nopycln: file
 
 from enum import IntEnum
+from itertools import count
 from parser.parser import (
     ConcatenationParser,
     NonTerminalParser,
@@ -15,14 +16,11 @@ from parser.parser import (
     Parser,
     RepeatParser,
     TerminalParser,
-    Token,
     parse_generic,
 )
 from parser.tokenizer import RegexTokenizer, tokenize
-from parser.tree import Tree
+from parser.tree import Token, Tree
 from typing import Dict, List, Optional, Set, Tuple
-from itertools import count
-
 
 # We can't use enum.auto, since Terminal and NonTerminal will have colliding values
 next_offset = count(start=1)

@@ -27,7 +27,7 @@ def tree_to_python_parser_expression(
         return f"LiteralParser({value})"
 
     elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
-        regex_value = tree[0].value(tokens, code)
+        regex_value = tree[1].value(tokens, code)
         return f"RegexTokenizer({regex_value})"
 
     elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
@@ -101,7 +101,6 @@ def tree_to_python_parser_expression(
         else:
             raise UnknownTokenError(token_name)
 
-    breakpoint()
     raise NotImplementedError  # pragma: nocover
 
 
@@ -133,7 +132,6 @@ def check_non_terminal_tree(tree: Tree) -> None:
         for child in tree.children[0::2]:
             check_non_terminal_tree(child)
     else:  # pragma: nocover
-        breakpoint()
         raise NotImplementedError
 
 
@@ -237,10 +235,9 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     prefix_comments += "# nopycln: file\n\n"
 
     parser_script = ""
-    parser_script += "from enum import IntEnum, auto\n"
+    parser_script += "from enum import IntEnum\n"
     parser_script += "from parser.parser import (\n"
     parser_script += "    ConcatenationParser,\n"
-    parser_script += "    LiteralParser,\n"
     parser_script += "    NonTerminalParser,\n"
     parser_script += "    OptionalParser,\n"
     parser_script += "    OrParser,\n"
@@ -251,12 +248,17 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += ")\n"
     parser_script += "from parser.tokenizer import RegexTokenizer, tokenize\n"
     parser_script += "from parser.tree import Tree, Token\n"
-    parser_script += "from typing import Dict, Optional, Set, List, Tuple\n"
+    parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
+    parser_script += "from itertools import count\n"
+    parser_script += "\n\n"
+
+    parser_script += "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
+    parser_script += "next_offset = count(start=1)\n"
     parser_script += "\n\n"
 
     parser_script += "class Terminal(IntEnum):\n"
     for terminal_name, _ in sorted(parsed_grammar.terminals):
-        parser_script += f"    {terminal_name} = auto()\n"
+        parser_script += f"    {terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
     parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [\n"
@@ -269,7 +271,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script += "class NonTerminal(IntEnum):\n"
     for non_terminal_name, _ in sorted(parsed_grammar.non_terminals):
-        parser_script += f"    {non_terminal_name} = auto()\n"
+        parser_script += f"    {non_terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
     parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {\n"
@@ -305,12 +307,14 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
-    parser_script += "    tokens: List[Token] = tokenize(code, TERMINAL_RULES)\n"
+    parser_script += (
+        "    tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)\n"
+    )
     parser_script += "    tree: Tree = parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS)\n"
     parser_script += "    return tokens, tree\n"
 
     # format with black
-    # parser_script = format_str(parser_script, mode=FileMode())
+    parser_script = format_str(parser_script, mode=FileMode())
 
     return prefix_comments + parser_script
 

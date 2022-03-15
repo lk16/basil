@@ -25,16 +25,6 @@ class Tree:
         return self.children[index]
 
 
-def prune_zero_length(tree: Optional[Tree]) -> Optional[Tree]:
-    if not tree:
-        return None
-
-    def prune_condition(tree: Tree) -> bool:
-        return tree.token_count == 0
-
-    return prune_tree(tree, prune_condition)
-
-
 def prune_by_symbol_types(
     tree: Optional[Tree], symbol_types: Set[IntEnum], *, prune_hard: bool
 ) -> Optional[Tree]:

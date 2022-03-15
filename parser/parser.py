@@ -8,13 +8,7 @@ from parser.exceptions import (
     UnexpectedSymbolType,
     UnhandledSymbolType,
 )
-from parser.tree import (
-    Token,
-    Tree,
-    prune_by_symbol_types,
-    prune_no_symbol,
-    prune_zero_length,
-)
+from parser.tree import Token, Tree, prune_by_symbol_types, prune_no_symbol
 from typing import Dict, List, Optional, Set, Type
 
 
@@ -277,12 +271,9 @@ def parse_generic(
     except InternalParseError as e:
         raise humanize_parse_error(code, tokens, e) from e
 
+    breakpoint()
     parsed = prune_no_symbol(parsed)
     assert parsed
-
-    parsed = prune_zero_length(parsed)
-    assert parsed
-    assert False, "prune_no_symbol() flattens entire tree"
 
     if prune_hard_symbols:
         parsed = prune_by_symbol_types(parsed, prune_hard_symbols, prune_hard=True)

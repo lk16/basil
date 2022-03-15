@@ -180,9 +180,11 @@ class NonTerminalParser(Parser):
     ) -> Tree:
         assert self.token_type
 
-        return non_terminal_rules[self.token_type].parse(
+        child = non_terminal_rules[self.token_type].parse(
             tokens, offset, non_terminal_rules
         )
+
+        return Tree(child.token_offset, child.token_count, self.token_type, [child])
 
 
 def humanize_parse_error(
@@ -271,7 +273,6 @@ def parse_generic(
     except InternalParseError as e:
         raise humanize_parse_error(code, tokens, e) from e
 
-    breakpoint()
     parsed = prune_no_symbol(parsed)
     assert parsed
 

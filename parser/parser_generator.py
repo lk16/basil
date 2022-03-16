@@ -22,13 +22,9 @@ def tree_to_python_parser_expression(
     terminal_names: Set[str],
     non_terminal_names: Set[str],
 ) -> str:
-    if tree.token_type == Terminal.LITERAL_EXPRESSION:
-        value = tree.value(tokens, code)
-        return f"LiteralParser({value})"
-
-    elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
-        regex_value = tree[1].value(tokens, code)
-        return f"RegexTokenizer({regex_value})"
+    if tree.token_type == NonTerminal.REGEX_EXPRESSION:
+        regex = tree.children[1].value(tokens, code)
+        return f"RegexTokenizer({regex})"
 
     elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
         bracket_end = tree[2].value(tokens, code)
@@ -39,11 +35,11 @@ def tree_to_python_parser_expression(
         if bracket_end == ")":
             return child_expr
         elif bracket_end == ")*":
-            return f"RepeatParser({child_expr})"
+            return f"RepeatExpression({child_expr})"
         elif bracket_end == ")+":
-            return f"RepeatParser({child_expr}, min_repeats=1)"
+            return f"RepeatExpression({child_expr}, min_repeats=1)"
         elif bracket_end == ")?":
-            return f"OptionalParser({child_expr})"
+            return f"OptionalExpression({child_expr})"
         else:  # pragma: nocover
             raise NotImplementedError
 
@@ -59,7 +55,7 @@ def tree_to_python_parser_expression(
         conjunc_items.append(tail)
 
         return (
-            "ConcatenationParser("
+            "ConcatenationExpression("
             + ", ".join(
                 tree_to_python_parser_expression(
                     concat_item, tokens, code, terminal_names, non_terminal_names
@@ -81,7 +77,7 @@ def tree_to_python_parser_expression(
         conjunc_items.append(tail)
 
         return (
-            "OrParser("
+            "ConjunctionExpression("
             + ", ".join(
                 tree_to_python_parser_expression(
                     conjunc_item, tokens, code, terminal_names, non_terminal_names
@@ -95,9 +91,9 @@ def tree_to_python_parser_expression(
         token_name = tree.value(tokens, code)
 
         if token_name in terminal_names:
-            return "TerminalParser(Terminal." + tree.value(tokens, code) + ")"
+            return "TerminalExpression(Terminal." + tree.value(tokens, code) + ")"
         elif token_name in non_terminal_names:
-            return "NonTerminalParser(NonTerminal." + tree.value(tokens, code) + ")"
+            return "NonTerminalExpression(NonTerminal." + tree.value(tokens, code) + ")"
         else:
             raise UnknownTokenError(token_name)
 
@@ -238,13 +234,14 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "from enum import IntEnum\n"
     parser_script += "from itertools import count\n"
     parser_script += "from parser.parser import (\n"
-    parser_script += "    ConcatenationParser,\n"
-    parser_script += "    NonTerminalParser,\n"
-    parser_script += "    OptionalParser,\n"
-    parser_script += "    OrParser,\n"
-    parser_script += "    Parser,\n"
+    parser_script += "    ConcatenationExpression,\n"
+    parser_script += "    ConjunctionExpression,\n"
+    parser_script += "    Expression,\n"
+    parser_script += "    NonTerminalExpression,\n"
+    parser_script += "    OptionalExpression,\n"
+    parser_script += "    RepeatExpression,\n"
     parser_script += "    RepeatParser,\n"
-    parser_script += "    TerminalParser,\n"
+    parser_script += "    TerminalExpression,\n"
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"
     parser_script += "from parser.tokenizer import RegexTokenizer, tokenize\n"
@@ -274,7 +271,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    {non_terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
-    parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {\n"
+    parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {\n"
     for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
         parser_expr = tree_to_python_parser_expression(
             tree, tokens, code, terminal_names, non_terminal_names

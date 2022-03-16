@@ -236,6 +236,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script = ""
     parser_script += "from enum import IntEnum\n"
+    parser_script += "from itertools import count\n"
     parser_script += "from parser.parser import (\n"
     parser_script += "    ConcatenationParser,\n"
     parser_script += "    NonTerminalParser,\n"
@@ -247,10 +248,9 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"
     parser_script += "from parser.tokenizer import RegexTokenizer, tokenize\n"
-    parser_script += "from parser.tree import Tree, Token\n"
+    parser_script += "from parser.tree import Token, Tree\n"
     parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
-    parser_script += "from itertools import count\n"
-    parser_script += "\n\n"
+    parser_script += "\n"
 
     parser_script += "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
     parser_script += "next_offset = count(start=1)\n"

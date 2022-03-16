@@ -9,7 +9,7 @@ from parser.exceptions import (
     UnhandledSymbolType,
 )
 from parser.tree import Token, Tree, prune_by_symbol_types, prune_no_symbol
-from typing import Dict, List, Optional, Set, Type
+from typing import Dict, List, Optional, Set
 
 
 @dataclass
@@ -54,7 +54,7 @@ class NonTerminalExpression(Expression):
     token_type: IntEnum
 
 
-class NewParser:
+class Parser:
     def __init__(
         self, tokens: List[Token], non_terminal_rules: Dict[IntEnum, Expression]
     ) -> None:
@@ -62,14 +62,18 @@ class NewParser:
         self.non_terminal_rules = non_terminal_rules
 
     def parse(self) -> Tree:
+        self._check_non_terminal_rules()
+
         non_terminal_enum_type = type(next(iter(self.non_terminal_rules.keys())))
         root_non_terminal = non_terminal_enum_type["ROOT"]
         root_expr = self.non_terminal_rules[root_non_terminal]
+
         parsed = self._parse(root_expr, 0)
 
         if parsed.token_count != len(self.tokens):
             raise InternalParseError(parsed.token_count, None)
 
+        parsed.token_type = root_non_terminal
         return parsed
 
     def _parse(self, expr: Expression, offset: int) -> Tree:
@@ -192,6 +196,28 @@ class NewParser:
         child = self._parse(non_terminal_expansion, offset)
         return Tree(child.token_offset, child.token_count, expr.token_type, [child])
 
+    def _check_non_terminal_rules(self) -> None:
+        """
+        Checks completeness, inconsistencies.
+        Returns the IntEnum subclass type used for all keys
+        """
+        symbols_enum = type(list((self.non_terminal_rules.keys()))[0])
+
+        for enum_value in symbols_enum:
+            try:
+                self.non_terminal_rules[enum_value]
+            except KeyError:
+                raise UnhandledSymbolType(enum_value)
+
+        unexpected_keys = self.non_terminal_rules.keys() - set(symbols_enum)
+        if unexpected_keys:
+            raise UnexpectedSymbolType(unexpected_keys)
+
+        try:
+            symbols_enum["ROOT"]
+        except KeyError:
+            raise ValueError(f"Non-terminals do not have a ROOT item")
+
 
 def humanize_parse_error(
     code: str, tokens: List[Token], e: InternalParseError
@@ -221,33 +247,6 @@ def humanize_parse_error(
     return ParseError(line_number, column_number, line, [])
 
 
-def _check_non_terminal_rules(
-    non_terminal_rules: Dict[IntEnum, Expression]
-) -> Type[IntEnum]:
-    """
-    Checks completeness, inconsistencies.
-    Returns the IntEnum subclass type used for all keys
-    """
-    symbols_enum = type(list((non_terminal_rules.keys()))[0])
-
-    for enum_value in symbols_enum:
-        try:
-            non_terminal_rules[enum_value]
-        except KeyError:
-            raise UnhandledSymbolType(enum_value)
-
-    if set(non_terminal_rules.keys()) != set(symbols_enum):
-        unexpected_keys = set(non_terminal_rules.keys()) - set(symbols_enum)
-        raise UnexpectedSymbolType(unexpected_keys)
-
-    try:
-        symbols_enum["ROOT"]
-    except KeyError:
-        raise ValueError(f"Non-terminals do not have a ROOT item")
-
-    return symbols_enum
-
-
 def parse_generic(
     non_terminal_rules: Dict[IntEnum, Expression],
     tokens: List[Token],
@@ -257,15 +256,10 @@ def parse_generic(
     root_token: str = "ROOT",
 ) -> Tree:
 
-    non_terminals_enum = _check_non_terminal_rules(non_terminal_rules)
-
-    root_symbol = non_terminals_enum[root_token]
-
     try:
-        parsed: Optional[Tree] = NewParser(tokens, non_terminal_rules).parse()
+        parsed: Optional[Tree] = Parser(tokens, non_terminal_rules).parse()
 
         assert parsed
-        parsed.token_type = root_symbol
 
     except InternalParseError as e:
         raise humanize_parse_error(code, tokens, e) from e

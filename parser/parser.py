@@ -56,9 +56,13 @@ class NonTerminalExpression(Expression):
 
 class Parser:
     def __init__(
-        self, tokens: List[Token], non_terminal_rules: Dict[IntEnum, Expression]
+        self,
+        tokens: List[Token],
+        code: str,
+        non_terminal_rules: Dict[IntEnum, Expression],
     ) -> None:
         self.tokens = tokens
+        self.code = code
         self.non_terminal_rules = non_terminal_rules
 
     def parse(self) -> Tree:
@@ -68,7 +72,10 @@ class Parser:
         root_non_terminal = non_terminal_enum_type["ROOT"]
         root_expr = self.non_terminal_rules[root_non_terminal]
 
-        parsed = self._parse(root_expr, 0)
+        try:
+            parsed = self._parse(root_expr, 0)
+        except InternalParseError as e:
+            raise self._humanize_parse_error(e) from e
 
         if parsed.token_count != len(self.tokens):
             raise InternalParseError(parsed.token_count, None)
@@ -218,33 +225,30 @@ class Parser:
         except KeyError:
             raise ValueError(f"Non-terminals do not have a ROOT item")
 
+    def _humanize_parse_error(self, e: InternalParseError) -> ParseError:
+        if not self.tokens:
+            # strange case: no input tokens
+            return ParseError(0, 0, "<no input tokens found>", [])
 
-def humanize_parse_error(
-    code: str, tokens: List[Token], e: InternalParseError
-) -> ParseError:
-    if not tokens:
-        # strange case: no input tokens
-        return ParseError(0, 0, "<no input tokens found>", [])
+        if e.token_offset == len(self.tokens):
+            offset = self.tokens[-1].offset + self.tokens[-1].length
+        else:
+            offset = self.tokens[e.token_offset].offset
 
-    if e.token_offset == len(tokens):
-        offset = tokens[-1].offset + tokens[-1].length
-    else:
-        offset = tokens[e.token_offset].offset
+        before_offset = self.code[:offset]
+        line_number = 1 + before_offset.count("\n")
+        prev_newline = before_offset.rfind("\n")
 
-    before_offset = code[:offset]
-    line_number = 1 + before_offset.count("\n")
-    prev_newline = before_offset.rfind("\n")
+        next_newline = self.code.find("\n", offset)
+        if next_newline == -1:
+            next_newline = len(self.code)
 
-    next_newline = code.find("\n", offset)
-    if next_newline == -1:
-        next_newline = len(code)
+        column_number = offset - prev_newline
+        line = self.code[prev_newline + 1 : next_newline]
 
-    column_number = offset - prev_newline
-    line = code[prev_newline + 1 : next_newline]
+        # TODO suggest expected symbol types
 
-    # TODO suggest expected symbol types
-
-    return ParseError(line_number, column_number, line, [])
+        return ParseError(line_number, column_number, line, [])
 
 
 def parse_generic(
@@ -256,13 +260,8 @@ def parse_generic(
     root_token: str = "ROOT",
 ) -> Tree:
 
-    try:
-        parsed: Optional[Tree] = Parser(tokens, non_terminal_rules).parse()
-
-        assert parsed
-
-    except InternalParseError as e:
-        raise humanize_parse_error(code, tokens, e) from e
+    parsed: Optional[Tree] = Parser(tokens, code, non_terminal_rules).parse()
+    assert parsed
 
     parsed = prune_no_symbol(parsed)
     assert parsed

@@ -153,7 +153,7 @@ class Parser:
     def _parse_repeat(self, expr: Expression, offset: int) -> Tree:
         assert isinstance(expr, RepeatExpression)
 
-        sub_trees: List[Tree] = []
+        children: List[Tree] = []
         child_offset = offset
 
         while True:
@@ -162,17 +162,17 @@ class Parser:
             except InternalParseError:
                 break
             else:
-                sub_trees.append(parsed)
+                children.append(parsed)
                 child_offset += parsed.token_count
 
-        if len(sub_trees) < expr.min_repeats:
+        if len(children) < expr.min_repeats:
             raise InternalParseError(offset, None)
 
         return Tree(
             offset,
             child_offset - offset,
             None,
-            sub_trees,
+            children,
         )
 
     def _parse_optional(self, expr: Expression, offset: int) -> Tree:

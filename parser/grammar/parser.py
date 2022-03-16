@@ -14,6 +14,7 @@ from parser.parser import (
     Expression,
     NonTerminalExpression,
     OptionalExpression,
+    Parser,
     RepeatExpression,
     TerminalExpression,
     parse_generic,
@@ -165,11 +166,12 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 
 def parse(code: str) -> Tuple[List[Token], Tree]:
     tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)
-    tree: Tree = parse_generic(
-        NON_TERMINAL_RULES,
+    tree: Tree = Parser(
         tokens,
         code,
+        NON_TERMINAL_RULES,
         HARD_PRUNED_NON_TERMINALS,
         SOFT_PRUNED_NON_TERMINALS,
-    )
+        "ROOT",
+    ).parse()
     return tokens, tree

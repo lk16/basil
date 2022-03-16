@@ -239,6 +239,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    Expression,\n"
     parser_script += "    NonTerminalExpression,\n"
     parser_script += "    OptionalExpression,\n"
+    parser_script += "    Parser,\n"
     parser_script += "    RepeatExpression,\n"
     parser_script += "    TerminalExpression,\n"
     parser_script += "    parse_generic,\n"
@@ -306,7 +307,9 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += (
         "    tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)\n"
     )
-    parser_script += "    tree: Tree = parse_generic(NON_TERMINAL_RULES, tokens, code, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS)\n"
+
+    parser_script += '    tree: Tree = Parser(tokens, code, NON_TERMINAL_RULES, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS, "ROOT").parse()\n'
+
     parser_script += "    return tokens, tree\n"
 
     # format with black

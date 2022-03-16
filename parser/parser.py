@@ -60,28 +60,54 @@ class Parser:
         tokens: List[Token],
         code: str,
         non_terminal_rules: Dict[IntEnum, Expression],
+        prune_hard_symbols: Set[IntEnum],
+        prune_soft_symbols: Set[IntEnum],
+        root_token: str = "ROOT",
     ) -> None:
         self.tokens = tokens
         self.code = code
         self.non_terminal_rules = non_terminal_rules
+        self.prune_hard_symbols = prune_hard_symbols
+        self.prune_soft_symbols = prune_soft_symbols
+        self.root_token = root_token
 
     def parse(self) -> Tree:
         self._check_non_terminal_rules()
 
         non_terminal_enum_type = type(next(iter(self.non_terminal_rules.keys())))
-        root_non_terminal = non_terminal_enum_type["ROOT"]
+        root_non_terminal = non_terminal_enum_type[self.root_token]
         root_expr = self.non_terminal_rules[root_non_terminal]
 
         try:
-            parsed = self._parse(root_expr, 0)
+            tree = self._parse(root_expr, 0)
+            tree.token_type = root_non_terminal
+
+            if tree.token_count != len(self.tokens):
+                raise InternalParseError(tree.token_count, None)
+
+            pruned_tree = prune_no_symbol(tree)
+
+            if not pruned_tree:
+                raise InternalParseError(0, None)
+
+            pruned_tree = prune_by_symbol_types(
+                pruned_tree, self.prune_hard_symbols, prune_hard=True
+            )
+
+            if not pruned_tree:
+                raise InternalParseError(0, None)
+
+            pruned_tree = prune_by_symbol_types(
+                pruned_tree, self.prune_soft_symbols, prune_hard=False
+            )
+
+            if not pruned_tree:
+                raise InternalParseError(0, None)
+
         except InternalParseError as e:
             raise self._humanize_parse_error(e) from e
 
-        if parsed.token_count != len(self.tokens):
-            raise InternalParseError(parsed.token_count, None)
-
-        parsed.token_type = root_non_terminal
-        return parsed
+        return pruned_tree
 
     def _parse(self, expr: Expression, offset: int) -> Tree:
 
@@ -204,10 +230,6 @@ class Parser:
         return Tree(child.token_offset, child.token_count, expr.token_type, [child])
 
     def _check_non_terminal_rules(self) -> None:
-        """
-        Checks completeness, inconsistencies.
-        Returns the IntEnum subclass type used for all keys
-        """
         symbols_enum = type(list((self.non_terminal_rules.keys()))[0])
 
         for enum_value in symbols_enum:
@@ -260,18 +282,11 @@ def parse_generic(
     root_token: str = "ROOT",
 ) -> Tree:
 
-    parsed: Optional[Tree] = Parser(tokens, code, non_terminal_rules).parse()
-    assert parsed
-
-    parsed = prune_no_symbol(parsed)
-    assert parsed
-
-    if prune_hard_symbols:
-        parsed = prune_by_symbol_types(parsed, prune_hard_symbols, prune_hard=True)
-        assert parsed
-
-    if prune_soft_symbols:
-        parsed = prune_by_symbol_types(parsed, prune_soft_symbols, prune_hard=False)
-        assert parsed
-
-    return parsed
+    return Parser(
+        tokens,
+        code,
+        non_terminal_rules,
+        prune_hard_symbols,
+        prune_soft_symbols,
+        root_token,
+    ).parse()

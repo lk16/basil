@@ -13,184 +13,6 @@ from typing import Dict, List, Optional, Set, Type
 
 
 @dataclass
-class Parser:
-    token_type: Optional[IntEnum] = None
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:  # pragma: nocover
-        raise NotImplementedError
-
-
-class OrParser(Parser):
-    def __init__(self, *args: Parser) -> None:
-        self.children = list(args)
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        parsed: Optional[Tree] = None
-
-        for child in self.children:
-            try:
-                parsed = child.parse(tokens, offset, non_terminal_rules)
-                break
-            except InternalParseError:
-                continue
-
-        if not parsed:
-            raise InternalParseError(offset, self.token_type)
-
-        return Tree(
-            parsed.token_offset,
-            parsed.token_count,
-            self.token_type,
-            [parsed],
-        )
-
-
-class RepeatParser(Parser):
-    def __init__(self, child: Parser, min_repeats: int = 0) -> None:
-        self.child = child
-        self.min_repeats = min_repeats
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        sub_trees: List[Tree] = []
-        child_offset = offset
-
-        while True:
-            try:
-                parsed = self.child.parse(tokens, child_offset, non_terminal_rules)
-            except InternalParseError:
-                break
-            else:
-                sub_trees.append(parsed)
-                child_offset += parsed.token_count
-
-        if len(sub_trees) < self.min_repeats:
-            raise InternalParseError(offset, self.child.token_type)
-
-        return Tree(
-            offset,
-            child_offset - offset,
-            self.token_type,
-            sub_trees,
-        )
-
-
-class OptionalParser(Parser):
-    def __init__(self, child: Parser) -> None:
-        self.child = child
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-
-        children: List[Tree] = []
-        length = 0
-
-        try:
-            parsed = self.child.parse(tokens, offset, non_terminal_rules)
-            children = [parsed]
-            length = parsed.token_count
-        except InternalParseError:
-            pass
-
-        return Tree(
-            offset,
-            length,
-            self.token_type,
-            children,
-        )
-
-
-class ConcatenationParser(Parser):
-    def __init__(self, *args: Parser) -> None:
-        self.children = list(args)
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        sub_trees: List[Tree] = []
-
-        child_offset = offset
-
-        for child in self.children:
-            parsed = child.parse(tokens, child_offset, non_terminal_rules)
-            sub_trees.append(parsed)
-            child_offset += parsed.token_count
-
-        return Tree(
-            offset,
-            child_offset - offset,
-            self.token_type,
-            sub_trees,
-        )
-
-
-class TerminalParser(Parser):
-    def __init__(self, token_type: IntEnum):
-        self.token_type = token_type
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        try:
-            token = tokens[offset]
-        except IndexError:
-            raise InternalParseError(offset, self.token_type)
-
-        if token.type != self.token_type:
-            raise InternalParseError(offset, self.token_type)
-
-        assert self.token_type
-
-        return Tree(offset, 1, self.token_type, [])
-
-
-class NonTerminalParser(Parser):
-    def __init__(self, token_type: IntEnum):
-        self.token_type = token_type
-
-    def parse(
-        self,
-        tokens: List[Token],
-        offset: int,
-        non_terminal_rules: Dict[IntEnum, "Parser"],
-    ) -> Tree:
-        assert self.token_type
-
-        child = non_terminal_rules[self.token_type].parse(
-            tokens, offset, non_terminal_rules
-        )
-
-        return Tree(child.token_offset, child.token_count, self.token_type, [child])
-
-
-# ---
-
-
-@dataclass
 class Expression:
     ...
 
@@ -243,7 +65,12 @@ class NewParser:
         non_terminal_enum_type = type(next(iter(self.non_terminal_rules.keys())))
         root_non_terminal = non_terminal_enum_type["ROOT"]
         root_expr = self.non_terminal_rules[root_non_terminal]
-        return self._parse(root_expr, 0)
+        parsed = self._parse(root_expr, 0)
+
+        if parsed.token_count != len(self.tokens):
+            raise InternalParseError(parsed.token_count, None)
+
+        return parsed
 
     def _parse(self, expr: Expression, offset: int) -> Tree:
 
@@ -434,16 +261,11 @@ def parse_generic(
 
     root_symbol = non_terminals_enum[root_token]
 
-    tree = non_terminal_rules[root_symbol]
-
     try:
         parsed: Optional[Tree] = NewParser(tokens, non_terminal_rules).parse()
 
         assert parsed
         parsed.token_type = root_symbol
-
-        if parsed.token_count != len(tokens):
-            raise InternalParseError(parsed.token_count, None)
 
     except InternalParseError as e:
         raise humanize_parse_error(code, tokens, e) from e

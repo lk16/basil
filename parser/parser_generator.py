@@ -240,7 +240,6 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    NonTerminalExpression,\n"
     parser_script += "    OptionalExpression,\n"
     parser_script += "    RepeatExpression,\n"
-    parser_script += "    RepeatParser,\n"
     parser_script += "    TerminalExpression,\n"
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"

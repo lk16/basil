@@ -15,7 +15,6 @@ from parser.parser import (
     NonTerminalExpression,
     OptionalExpression,
     RepeatExpression,
-    RepeatParser,
     TerminalExpression,
     parse_generic,
 )

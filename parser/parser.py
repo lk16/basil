@@ -197,13 +197,16 @@ class Expression:
 
 @dataclass
 class ConjunctionExpression(Expression):
+    def __init__(self, *args: Expression) -> None:
+        self.children = list(args)
+
     children: List[Expression]
 
 
 @dataclass
 class RepeatExpression(Expression):
     child: Expression
-    min_repeats: int
+    min_repeats: int = 0
 
 
 @dataclass
@@ -213,6 +216,9 @@ class OptionalExpression(Expression):
 
 @dataclass
 class ConcatenationExpression(Expression):
+    def __init__(self, *args: Expression) -> None:
+        self.children = list(args)
+
     children: List[Expression]
 
 
@@ -241,8 +247,8 @@ class NewParser:
 
     def _parse(self, expr: Expression, offset: int) -> Tree:
 
-        if offset > len(self.tokens):
-            raise NotImplementedError
+        if offset >= len(self.tokens):
+            raise InternalParseError(offset, None)
 
         parse_funcs = {
             ConcatenationExpression: self._parse_concatenation,
@@ -389,7 +395,7 @@ def humanize_parse_error(
 
 
 def _check_non_terminal_rules(
-    non_terminal_rules: Dict[IntEnum, Parser]
+    non_terminal_rules: Dict[IntEnum, Expression]
 ) -> Type[IntEnum]:
     """
     Checks completeness, inconsistencies.
@@ -416,7 +422,7 @@ def _check_non_terminal_rules(
 
 
 def parse_generic(
-    non_terminal_rules: Dict[IntEnum, Parser],
+    non_terminal_rules: Dict[IntEnum, Expression],
     tokens: List[Token],
     code: str,
     prune_hard_symbols: Set[IntEnum],
@@ -430,12 +436,8 @@ def parse_generic(
 
     tree = non_terminal_rules[root_symbol]
 
-    # Prevent infinite recursion
-    if not isinstance(tree, (NonTerminalParser, TerminalParser)):
-        tree.token_type = root_symbol
-
     try:
-        parsed: Optional[Tree] = tree.parse(tokens, 0, non_terminal_rules)
+        parsed: Optional[Tree] = NewParser(tokens, non_terminal_rules).parse()
 
         assert parsed
         parsed.token_type = root_symbol

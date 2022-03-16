@@ -9,13 +9,14 @@
 from enum import IntEnum
 from itertools import count
 from parser.parser import (
-    ConcatenationParser,
-    NonTerminalParser,
-    OptionalParser,
-    OrParser,
-    Parser,
+    ConcatenationExpression,
+    ConjunctionExpression,
+    Expression,
+    NonTerminalExpression,
+    OptionalExpression,
+    RepeatExpression,
     RepeatParser,
-    TerminalParser,
+    TerminalExpression,
     parse_generic,
 )
 from parser.tokenizer import RegexTokenizer, tokenize
@@ -82,67 +83,67 @@ class NonTerminal(IntEnum):
     TOKEN_EXPRESSION = next(next_offset)
 
 
-NON_TERMINAL_RULES: Dict[IntEnum, Parser] = {
-    NonTerminal.BRACKET_EXPRESSION: ConcatenationParser(
-        TerminalParser(Terminal.BRACKET_OPEN),
-        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
-        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION_END),
+NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
+    NonTerminal.BRACKET_EXPRESSION: ConcatenationExpression(
+        TerminalExpression(Terminal.BRACKET_OPEN),
+        NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
+        NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION_END),
     ),
-    NonTerminal.BRACKET_EXPRESSION_END: OrParser(
-        TerminalParser(Terminal.BRACKET_CLOSE),
-        TerminalParser(Terminal.BRACKET_AT_LEAST_ONCE),
-        TerminalParser(Terminal.BRACKET_REPEAT),
-        TerminalParser(Terminal.BRACKET_OPTIONAL),
+    NonTerminal.BRACKET_EXPRESSION_END: ConjunctionExpression(
+        TerminalExpression(Terminal.BRACKET_CLOSE),
+        TerminalExpression(Terminal.BRACKET_AT_LEAST_ONCE),
+        TerminalExpression(Terminal.BRACKET_REPEAT),
+        TerminalExpression(Terminal.BRACKET_OPTIONAL),
     ),
-    NonTerminal.CONCATENATION_EXPRESSION: ConcatenationParser(
-        OrParser(
-            NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
-            NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
-            NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
+    NonTerminal.CONCATENATION_EXPRESSION: ConcatenationExpression(
+        ConjunctionExpression(
+            NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
+            NonTerminalExpression(NonTerminal.CONJUNCTION_EXPRESSION),
+            NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION),
         ),
-        RepeatParser(
-            NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION), min_repeats=1
+        RepeatExpression(
+            NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION), min_repeats=1
         ),
     ),
-    NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationParser(
-        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
-        TerminalParser(Terminal.VERTICAL_BAR),
-        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
+    NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationExpression(
+        NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
+        TerminalExpression(Terminal.VERTICAL_BAR),
+        NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),
-    NonTerminal.DECORATOR: ConcatenationParser(
-        TerminalParser(Terminal.DECORATOR_MARKER),
-        NonTerminalParser(NonTerminal.DECORATOR_VALUE),
+    NonTerminal.DECORATOR: ConcatenationExpression(
+        TerminalExpression(Terminal.DECORATOR_MARKER),
+        NonTerminalExpression(NonTerminal.DECORATOR_VALUE),
     ),
-    NonTerminal.DECORATOR_VALUE: OrParser(
-        TerminalParser(Terminal.DECORATOR_PRUNE_HARD),
-        TerminalParser(Terminal.DECORATOR_PRUNE_SOFT),
-        TerminalParser(Terminal.DECORATOR_TOKEN),
+    NonTerminal.DECORATOR_VALUE: ConjunctionExpression(
+        TerminalExpression(Terminal.DECORATOR_PRUNE_HARD),
+        TerminalExpression(Terminal.DECORATOR_PRUNE_SOFT),
+        TerminalExpression(Terminal.DECORATOR_TOKEN),
     ),
-    NonTerminal.LINE: OrParser(
-        NonTerminalParser(NonTerminal.TOKEN_DEFINITION),
-        NonTerminalParser(NonTerminal.DECORATOR),
+    NonTerminal.LINE: ConjunctionExpression(
+        NonTerminalExpression(NonTerminal.TOKEN_DEFINITION),
+        NonTerminalExpression(NonTerminal.DECORATOR),
     ),
-    NonTerminal.REGEX_EXPRESSION: ConcatenationParser(
-        TerminalParser(Terminal.REGEX_START),
-        TerminalParser(Terminal.LITERAL_EXPRESSION),
-        TerminalParser(Terminal.BRACKET_CLOSE),
+    NonTerminal.REGEX_EXPRESSION: ConcatenationExpression(
+        TerminalExpression(Terminal.REGEX_START),
+        TerminalExpression(Terminal.LITERAL_EXPRESSION),
+        TerminalExpression(Terminal.BRACKET_CLOSE),
     ),
-    NonTerminal.ROOT: RepeatParser(NonTerminalParser(NonTerminal.LINE)),
-    NonTerminal.TOKEN_COMPOUND_EXPRESSION: OrParser(
-        NonTerminalParser(NonTerminal.CONCATENATION_EXPRESSION),
-        NonTerminalParser(NonTerminal.CONJUNCTION_EXPRESSION),
-        NonTerminalParser(NonTerminal.BRACKET_EXPRESSION),
-        NonTerminalParser(NonTerminal.TOKEN_EXPRESSION),
+    NonTerminal.ROOT: RepeatExpression(NonTerminalExpression(NonTerminal.LINE)),
+    NonTerminal.TOKEN_COMPOUND_EXPRESSION: ConjunctionExpression(
+        NonTerminalExpression(NonTerminal.CONCATENATION_EXPRESSION),
+        NonTerminalExpression(NonTerminal.CONJUNCTION_EXPRESSION),
+        NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION),
+        NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
     ),
-    NonTerminal.TOKEN_DEFINITION: ConcatenationParser(
-        TerminalParser(Terminal.TOKEN_NAME),
-        TerminalParser(Terminal.EQUALS),
-        NonTerminalParser(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
-        TerminalParser(Terminal.PERIOD),
+    NonTerminal.TOKEN_DEFINITION: ConcatenationExpression(
+        TerminalExpression(Terminal.TOKEN_NAME),
+        TerminalExpression(Terminal.EQUALS),
+        NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
+        TerminalExpression(Terminal.PERIOD),
     ),
-    NonTerminal.TOKEN_EXPRESSION: OrParser(
-        TerminalParser(Terminal.TOKEN_NAME),
-        NonTerminalParser(NonTerminal.REGEX_EXPRESSION),
+    NonTerminal.TOKEN_EXPRESSION: ConjunctionExpression(
+        TerminalExpression(Terminal.TOKEN_NAME),
+        NonTerminalExpression(NonTerminal.REGEX_EXPRESSION),
     ),
 }
 

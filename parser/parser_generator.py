@@ -9,12 +9,8 @@ from typing import List, Optional, Set, Tuple
 from black import FileMode, format_str
 
 
-def tree_to_python_parser_expression(
-    tree: Tree,
-    tokens: List[Token],
-    code: str,
-    terminal_names: Set[str],
-    non_terminal_names: Set[str],
+def tree_to_python_tokenizer_expression(
+    tree: Tree, tokens: List[Token], code: str
 ) -> str:
     if tree.token_type == Terminal.LITERAL_EXPRESSION:
         literal = tree.value(tokens, code)
@@ -24,7 +20,18 @@ def tree_to_python_parser_expression(
         regex = tree.children[1].value(tokens, code)
         return f"RegexTokenizer({regex})"
 
-    elif tree.token_type == NonTerminal.BRACKET_EXPRESSION:
+    else:  # pragma: nocover
+        raise NotImplementedError
+
+
+def tree_to_python_parser_expression(
+    tree: Tree,
+    tokens: List[Token],
+    code: str,
+    terminal_names: Set[str],
+    non_terminal_names: Set[str],
+) -> str:
+    if tree.token_type == NonTerminal.BRACKET_EXPRESSION:
         bracket_end = tree[2].value(tokens, code)
         child_expr = tree_to_python_parser_expression(
             tree[1], tokens, code, terminal_names, non_terminal_names
@@ -260,9 +267,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, Tokenizer]] = [\n"
     for non_terminal_name, tree in parsed_grammar.terminals:
-        parser_expr = tree_to_python_parser_expression(
-            tree, tokens, code, terminal_names, non_terminal_names
-        )
+        parser_expr = tree_to_python_tokenizer_expression(tree, tokens, code)
         parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
     parser_script += "]\n\n\n"
 

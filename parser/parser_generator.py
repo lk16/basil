@@ -14,11 +14,11 @@ def tree_to_python_tokenizer_expression(
 ) -> str:
     if tree.token_type == Terminal.LITERAL_EXPRESSION:
         literal = tree.value(tokens, code)
-        return f"LiteralTokenizer({literal})"
+        return f"Literal({literal})"
 
     elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
         regex = tree.children[1].value(tokens, code)
-        return f"RegexTokenizer({regex})"
+        return f"Regex({regex})"
 
     else:  # pragma: nocover
         raise NotImplementedError
@@ -203,9 +203,10 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    Parser,\n"
     parser_script += "    RepeatExpression,\n"
     parser_script += "    TerminalExpression,\n"
-    parser_script += "    parse_generic,\n"
     parser_script += ")\n"
-    parser_script += "from parser.tokenizer import  LiteralTokenizer, RegexTokenizer, Tokenizer, tokenize\n"
+    parser_script += (
+        "from parser.tokenizer import Literal, Regex, Tokenizable, Tokenizer\n"
+    )
     parser_script += "from parser.tree import Token, Tree\n"
     parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
     parser_script += "\n"
@@ -263,9 +264,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
-    parser_script += (
-        "    tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)\n"
-    )
+    parser_script += "    tokens: List[Token] = NewTokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
 
     parser_script += '    tree: Tree = Parser(tokens, code, NON_TERMINAL_RULES, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS, "ROOT").parse()\n'
 

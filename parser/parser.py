@@ -271,22 +271,3 @@ class Parser:
         # TODO suggest expected token types
 
         return ParseError(line_number, column_number, line, [])
-
-
-def parse_generic(
-    non_terminal_rules: Dict[IntEnum, Expression],
-    tokens: List[Token],
-    code: str,
-    prune_hard_tokens: Set[IntEnum],
-    prune_soft_tokens: Set[IntEnum],
-    root_token: str = "ROOT",
-) -> Tree:
-
-    return Parser(
-        tokens,
-        code,
-        non_terminal_rules,
-        prune_hard_tokens,
-        prune_soft_tokens,
-        root_token,
-    ).parse()

@@ -17,9 +17,8 @@ from parser.parser import (
     Parser,
     RepeatExpression,
     TerminalExpression,
-    parse_generic,
 )
-from parser.tokenizer import LiteralTokenizer, RegexTokenizer, Tokenizer, tokenize
+from parser.tokenizer import Literal, NewTokenizer, Regex, TokenDescriptor
 from parser.tree import Token, Tree
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -47,24 +46,24 @@ class Terminal(IntEnum):
     WHITESPACE = next(next_offset)
 
 
-TERMINAL_RULES: List[Tuple[IntEnum, Tokenizer]] = [
-    (Terminal.COMMENT, RegexTokenizer("//[^\n]*")),
-    (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
-    (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
-    (Terminal.PERIOD, LiteralTokenizer(".")),
-    (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\.)*?"')),
-    (Terminal.DECORATOR_MARKER, LiteralTokenizer("@")),
-    (Terminal.DECORATOR_PRUNE_HARD, LiteralTokenizer("prune hard")),
-    (Terminal.DECORATOR_PRUNE_SOFT, LiteralTokenizer("prune soft")),
-    (Terminal.DECORATOR_TOKEN, LiteralTokenizer("token")),
-    (Terminal.EQUALS, LiteralTokenizer("=")),
-    (Terminal.BRACKET_OPEN, LiteralTokenizer("(")),
-    (Terminal.BRACKET_AT_LEAST_ONCE, LiteralTokenizer(")+")),
-    (Terminal.BRACKET_REPEAT, LiteralTokenizer(")*")),
-    (Terminal.BRACKET_OPTIONAL, LiteralTokenizer(")?")),
-    (Terminal.BRACKET_CLOSE, LiteralTokenizer(")")),
-    (Terminal.REGEX_START, LiteralTokenizer("regex(")),
-    (Terminal.VERTICAL_BAR, LiteralTokenizer("|")),
+TERMINAL_RULES: List[Tuple[IntEnum, TokenDescriptor]] = [
+    (Terminal.COMMENT, Regex("//[^\n]*")),
+    (Terminal.WHITESPACE, Regex("[ \n]*")),
+    (Terminal.TOKEN_NAME, Regex("[A-Z_]+")),
+    (Terminal.PERIOD, Literal(".")),
+    (Terminal.LITERAL_EXPRESSION, Regex('"([^\\\\]|\\\\.)*?"')),
+    (Terminal.DECORATOR_MARKER, Literal("@")),
+    (Terminal.DECORATOR_PRUNE_HARD, Literal("prune hard")),
+    (Terminal.DECORATOR_PRUNE_SOFT, Literal("prune soft")),
+    (Terminal.DECORATOR_TOKEN, Literal("token")),
+    (Terminal.EQUALS, Literal("=")),
+    (Terminal.BRACKET_OPEN, Literal("(")),
+    (Terminal.BRACKET_AT_LEAST_ONCE, Literal(")+")),
+    (Terminal.BRACKET_REPEAT, Literal(")*")),
+    (Terminal.BRACKET_OPTIONAL, Literal(")?")),
+    (Terminal.BRACKET_CLOSE, Literal(")")),
+    (Terminal.REGEX_START, Literal("regex(")),
+    (Terminal.VERTICAL_BAR, Literal("|")),
 ]
 
 
@@ -167,7 +166,7 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 
 
 def parse(code: str) -> Tuple[List[Token], Tree]:
-    tokens: List[Token] = tokenize(code, TERMINAL_RULES, PRUNED_TERMINALS)
+    tokens: List[Token] = NewTokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
     tree: Tree = Parser(
         tokens,
         code,

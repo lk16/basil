@@ -2,6 +2,7 @@
 
 ### Tokenize
 [ ] create `Tokenizer` class like `Parser`
+[ ] move `token_type` into `TokenDescriptor`
 [ ] move `InternalParseError` into `ParseError`
 [ ] implement `flatten` decorator for non terminals
 [ ] replace `prune hard` and `prune soft` by `prune`, for terminal it's hard, for non-terminal it's soft.

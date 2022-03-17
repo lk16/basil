@@ -1,5 +1,4 @@
 import re
-from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
 from parser.exceptions import InternalParseError
@@ -16,21 +15,84 @@ class Token:
         return code[self.offset : self.offset + self.length]
 
 
-class Tokenizer:
-    @abstractmethod
-    def tokenize(self, code: str, offset: int) -> Optional[int]:
-        ...
+class TokenDescriptor:
+    ...
 
 
-class RegexTokenizer(Tokenizer):
-    def __init__(self, regex: str):
-        if regex.startswith("^"):
-            raise ValueError("Regex should not start with a caret '^' character")
+@dataclass
+class Regex(TokenDescriptor):
+    def __init__(self, regex: str) -> None:
+        self.value = re.compile(regex)
 
-        self.regex = re.compile(f"^{regex}")
+    value: re.Pattern[str]
 
-    def tokenize(self, code: str, offset: int) -> Optional[int]:
-        match = self.regex.match(code[offset:])
+
+@dataclass
+class Literal(TokenDescriptor):
+    value: str
+
+
+class NewTokenizer:
+    def __init__(
+        self,
+        code: str,
+        terminal_rules: List[Tuple[IntEnum, TokenDescriptor]],
+        pruned_terminals: Set[IntEnum],
+    ) -> None:
+        self.code = code
+        self.terminal_rules = terminal_rules
+        self.pruned_terminals = pruned_terminals
+
+    def _check_terminal_rules(self) -> None:
+        enum_type = type(self.terminal_rules[0][0])
+
+        found_enum_values = {item[0] for item in self.terminal_rules}
+
+        if found_enum_values != set(enum_type) or len(self.terminal_rules) != len(
+            enum_type
+        ):
+            raise ValueError("Terminal rules has duplicates or missing items.")
+
+    def tokenize(self) -> List[Token]:
+        self._check_terminal_rules()
+
+        tokenizables = {
+            Literal: self._tokenize_literal,
+            Regex: self._tokenize_regex,
+        }
+
+        tokens: List[Token] = []
+        offset = 0
+
+        while offset < len(self.code):
+            token_match = False
+
+            for token_type, tokenizable in self.terminal_rules:
+
+                # tokenize as literal or regex
+                token_length = tokenizables[type(tokenizable)](tokenizable, offset)
+
+                if token_length is not None:
+                    if token_type not in self.pruned_terminals:
+                        tokens.append(Token(token_type, offset, token_length))
+
+                    offset += token_length
+                    token_match = True
+                    break
+
+            if not token_match:
+                # TODO use internal tokenize error
+                raise InternalParseError(offset, None)
+
+        return tokens
+
+    def _tokenize_regex(
+        self, tokenizable: TokenDescriptor, offset: int
+    ) -> Optional[int]:
+        assert isinstance(tokenizable, Regex)
+        regex = tokenizable.value
+
+        match = regex.match(self.code[offset:])
 
         if not match:
             return None
@@ -42,53 +104,13 @@ class RegexTokenizer(Tokenizer):
 
         return match_length
 
+    def _tokenize_literal(
+        self, tokenizable: TokenDescriptor, offset: int
+    ) -> Optional[int]:
+        assert isinstance(tokenizable, Literal)
+        literal = tokenizable.value
 
-class LiteralTokenizer(Tokenizer):
-    def __init__(self, literal: str):
-        self.literal = literal
-
-    def tokenize(self, code: str, offset: int) -> Optional[int]:
-        if not code[offset:].startswith(self.literal):
+        if not self.code[offset:].startswith(literal):
             return None
 
-        return len(self.literal)
-
-
-def _check_terminal_rules(terminal_rules: List[Tuple[IntEnum, Tokenizer]]) -> None:
-    enum_type = type(terminal_rules[0][0])
-
-    found_enum_values = {item[0] for item in terminal_rules}
-
-    if found_enum_values != set(enum_type) or len(terminal_rules) != len(enum_type):
-        raise ValueError("Terminal rules has duplicates or missing items.")
-
-
-def tokenize(
-    code: str,
-    terminal_rules: List[Tuple[IntEnum, Tokenizer]],
-    pruned_terminals: Set[IntEnum],
-) -> List[Token]:
-    _check_terminal_rules(terminal_rules)
-
-    tokens: List[Token] = []
-    offset = 0
-
-    while offset < len(code):
-        token_match = False
-
-        for token_type, tokenizer in terminal_rules:
-            token_length = tokenizer.tokenize(code, offset)
-
-            if token_length is not None:
-                if token_type not in pruned_terminals:
-                    tokens.append(Token(token_type, offset, token_length))
-
-                offset += token_length
-                token_match = True
-                break
-
-        if not token_match:
-            # TODO use internal tokenize error
-            raise InternalParseError(offset, None)
-
-    return tokens
+        return len(literal)

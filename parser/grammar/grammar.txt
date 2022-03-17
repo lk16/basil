@@ -46,7 +46,7 @@ BRACKET_REPEAT = ")*" .
 @ token
 BRACKET_OPTIONAL = ")?" .
 
-// needs to be after other closing brackets
+// This needs to be after other closing brackets, because it's shorter
 @ token
 BRACKET_CLOSE = ")" .
 

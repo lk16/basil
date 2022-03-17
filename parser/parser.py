@@ -8,7 +8,7 @@ from parser.exceptions import (
     UnexpectedSymbolType,
     UnhandledSymbolType,
 )
-from parser.tree import Token, Tree, prune_by_symbol_types, prune_no_symbol
+from parser.tree import Token, Tree, prune_by_token_types, prune_no_symbol
 from typing import Dict, List, Optional, Set
 
 
@@ -90,14 +90,14 @@ class Parser:
             if not pruned_tree:
                 raise InternalParseError(0, None)
 
-            pruned_tree = prune_by_symbol_types(
+            pruned_tree = prune_by_token_types(
                 pruned_tree, self.prune_hard_symbols, prune_hard=True
             )
 
             if not pruned_tree:
                 raise InternalParseError(0, None)
 
-            pruned_tree = prune_by_symbol_types(
+            pruned_tree = prune_by_token_types(
                 pruned_tree, self.prune_soft_symbols, prune_hard=False
             )
 

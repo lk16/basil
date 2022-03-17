@@ -9,12 +9,6 @@ from typing import List, Optional, Set, Tuple
 from black import FileMode, format_str
 
 
-class UnknownTokenError(Exception):
-    def __init__(self, token_name: str) -> None:
-        self.token_name = token_name
-        super().__init__(f"Unknown token name {token_name}")
-
-
 def tree_to_python_parser_expression(
     tree: Tree,
     tokens: List[Token],
@@ -99,14 +93,14 @@ def tree_to_python_parser_expression(
         elif token_name in non_terminal_names:
             return "NonTerminalExpression(NonTerminal." + tree.value(tokens, code) + ")"
         else:
-            raise UnknownTokenError(token_name)
+            raise NotImplementedError  # pragma: nocover
 
     raise NotImplementedError  # pragma: nocover
 
 
 class InvalidTree(Exception):
     def __init__(self, invalid_thing: str):
-        self.symbol_type = invalid_thing
+        self.token_type = invalid_thing
         super().__init__(f"{invalid_thing} is not allowed.")
 
 

@@ -3,9 +3,9 @@ from typing import List, Optional, Set
 
 
 class InternalParseError(Exception):
-    def __init__(self, offset: int, symbol_type: Optional[IntEnum]) -> None:
+    def __init__(self, offset: int, token_type: Optional[IntEnum]) -> None:
         self.token_offset = offset
-        self.symbol_type = symbol_type
+        self.token_type = token_type
         super().__init__()
 
 
@@ -19,12 +19,12 @@ class ParseError(Exception):
         line_number: int,
         column_number: int,
         line: str,
-        expected_symbol_types: List[IntEnum],
+        expected_token_types: List[IntEnum],
     ) -> None:
         self.line_number = line_number
         self.column_number = column_number
         self.line = line
-        self.expected_symbol_types = expected_symbol_types
+        self.expected_token_types = expected_token_types
 
         # TODO pass source file path
         source_file = "<source_file>"
@@ -40,9 +40,9 @@ class ParseError(Exception):
 
 
 class InternalTokenizeError(Exception):
-    def __init__(self, offset: int, symbol_type: Optional[IntEnum]) -> None:
+    def __init__(self, offset: int, token_type: Optional[IntEnum]) -> None:
         self.token_offset = offset
-        self.symbol_type = symbol_type
+        self.token_type = token_type
         super().__init__()
 
 
@@ -51,8 +51,8 @@ class UnhandledSymbolType(Exception):
     Indicates rewrite rules misses an entry.
     """
 
-    def __init__(self, symbol_type: IntEnum) -> None:
-        super().__init__(f"Unhandled symbol type {symbol_type.name}")
+    def __init__(self, token_type: IntEnum) -> None:
+        super().__init__(f"Unhandled symbol type {token_type.name}")
 
 
 class UnexpectedSymbolType(Exception):

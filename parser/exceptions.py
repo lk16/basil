@@ -46,16 +46,16 @@ class InternalTokenizeError(Exception):
         super().__init__()
 
 
-class UnhandledSymbolType(Exception):
+class UnhandledTokenType(Exception):
     """
     Indicates rewrite rules misses an entry.
     """
 
     def __init__(self, token_type: IntEnum) -> None:
-        super().__init__(f"Unhandled symbol type {token_type.name}")
+        super().__init__(f"Unhandled token type {token_type.name}")
 
 
-class UnexpectedSymbolType(Exception):
+class UnexpectedTokenType(Exception):
     """
     Indicates rewrite rules has an unexpected entry.
     """

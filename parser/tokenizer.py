@@ -1,4 +1,5 @@
 import re
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
 from parser.exceptions import InternalParseError
@@ -15,7 +16,13 @@ class Token:
         return code[self.offset : self.offset + self.length]
 
 
-class RegexTokenizer:
+class Tokenizer:
+    @abstractmethod
+    def tokenize(self, code: str, offset: int) -> Optional[int]:
+        ...
+
+
+class RegexTokenizer(Tokenizer):
     def __init__(self, regex: str):
         if regex.startswith("^"):
             raise ValueError("Regex should not start with a caret '^' character")
@@ -36,7 +43,18 @@ class RegexTokenizer:
         return match_length
 
 
-def _check_terminal_rules(terminal_rules: List[Tuple[IntEnum, RegexTokenizer]]) -> None:
+class LiteralTokenizer(Tokenizer):
+    def __init__(self, literal: str):
+        self.literal = literal
+
+    def tokenize(self, code: str, offset: int) -> Optional[int]:
+        if not code[offset:].startswith(self.literal):
+            return None
+
+        return len(self.literal)
+
+
+def _check_terminal_rules(terminal_rules: List[Tuple[IntEnum, Tokenizer]]) -> None:
     enum_type = type(terminal_rules[0][0])
 
     found_enum_values = {item[0] for item in terminal_rules}
@@ -47,7 +65,7 @@ def _check_terminal_rules(terminal_rules: List[Tuple[IntEnum, RegexTokenizer]]) 
 
 def tokenize(
     code: str,
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]],
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]],
     pruned_terminals: Set[IntEnum],
 ) -> List[Token]:
     _check_terminal_rules(terminal_rules)

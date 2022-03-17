@@ -19,7 +19,7 @@ from parser.parser import (
     TerminalExpression,
     parse_generic,
 )
-from parser.tokenizer import RegexTokenizer, tokenize
+from parser.tokenizer import LiteralTokenizer, RegexTokenizer, Tokenizer, tokenize
 from parser.tree import Token, Tree
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -47,24 +47,24 @@ class Terminal(IntEnum):
     WHITESPACE = next(next_offset)
 
 
-TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [
+TERMINAL_RULES: List[Tuple[IntEnum, Tokenizer]] = [
     (Terminal.COMMENT, RegexTokenizer("//[^\n]*")),
     (Terminal.WHITESPACE, RegexTokenizer("[ \n]*")),
     (Terminal.TOKEN_NAME, RegexTokenizer("[A-Z_]+")),
-    (Terminal.PERIOD, RegexTokenizer("\\.")),
+    (Terminal.PERIOD, LiteralTokenizer(".")),
     (Terminal.LITERAL_EXPRESSION, RegexTokenizer('"([^\\\\]|\\\\.)*?"')),
-    (Terminal.DECORATOR_MARKER, RegexTokenizer("@")),
-    (Terminal.DECORATOR_PRUNE_HARD, RegexTokenizer("prune hard")),
-    (Terminal.DECORATOR_PRUNE_SOFT, RegexTokenizer("prune soft")),
-    (Terminal.DECORATOR_TOKEN, RegexTokenizer("token")),
-    (Terminal.EQUALS, RegexTokenizer("=")),
-    (Terminal.BRACKET_OPEN, RegexTokenizer("\\(")),
-    (Terminal.BRACKET_AT_LEAST_ONCE, RegexTokenizer("\\)\\+")),
-    (Terminal.BRACKET_REPEAT, RegexTokenizer("\\)\\*")),
-    (Terminal.BRACKET_OPTIONAL, RegexTokenizer("\\)\\?")),
-    (Terminal.BRACKET_CLOSE, RegexTokenizer("\\)")),
-    (Terminal.REGEX_START, RegexTokenizer("regex\\(")),
-    (Terminal.VERTICAL_BAR, RegexTokenizer("\\|")),
+    (Terminal.DECORATOR_MARKER, LiteralTokenizer("@")),
+    (Terminal.DECORATOR_PRUNE_HARD, LiteralTokenizer("prune hard")),
+    (Terminal.DECORATOR_PRUNE_SOFT, LiteralTokenizer("prune soft")),
+    (Terminal.DECORATOR_TOKEN, LiteralTokenizer("token")),
+    (Terminal.EQUALS, LiteralTokenizer("=")),
+    (Terminal.BRACKET_OPEN, LiteralTokenizer("(")),
+    (Terminal.BRACKET_AT_LEAST_ONCE, LiteralTokenizer(")+")),
+    (Terminal.BRACKET_REPEAT, LiteralTokenizer(")*")),
+    (Terminal.BRACKET_OPTIONAL, LiteralTokenizer(")?")),
+    (Terminal.BRACKET_CLOSE, LiteralTokenizer(")")),
+    (Terminal.REGEX_START, LiteralTokenizer("regex(")),
+    (Terminal.VERTICAL_BAR, LiteralTokenizer("|")),
 ]
 
 
@@ -144,6 +144,7 @@ NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
     NonTerminal.TOKEN_EXPRESSION: ConjunctionExpression(
         TerminalExpression(Terminal.TOKEN_NAME),
         NonTerminalExpression(NonTerminal.REGEX_EXPRESSION),
+        TerminalExpression(Terminal.LITERAL_EXPRESSION),
     ),
 }
 

@@ -22,7 +22,11 @@ def tree_to_python_parser_expression(
     terminal_names: Set[str],
     non_terminal_names: Set[str],
 ) -> str:
-    if tree.token_type == NonTerminal.REGEX_EXPRESSION:
+    if tree.token_type == Terminal.LITERAL_EXPRESSION:
+        literal = tree.value(tokens, code)
+        return f"LiteralTokenizer({literal})"
+
+    elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
         regex = tree.children[1].value(tokens, code)
         return f"RegexTokenizer({regex})"
 
@@ -110,7 +114,10 @@ def check_terminal_tree(tree: Tree) -> None:
     if tree.token_type is None:
         return
 
-    if tree.token_type != NonTerminal.REGEX_EXPRESSION.value:
+    if tree.token_type not in [
+        NonTerminal.REGEX_EXPRESSION.value,
+        Terminal.LITERAL_EXPRESSION.value,
+    ]:
         raise InvalidTree(tree.token_type.name)
 
 
@@ -244,7 +251,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    TerminalExpression,\n"
     parser_script += "    parse_generic,\n"
     parser_script += ")\n"
-    parser_script += "from parser.tokenizer import RegexTokenizer, tokenize\n"
+    parser_script += "from parser.tokenizer import  LiteralTokenizer, RegexTokenizer, Tokenizer, tokenize\n"
     parser_script += "from parser.tree import Token, Tree\n"
     parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
     parser_script += "\n"
@@ -258,7 +265,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    {terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
-    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, RegexTokenizer]] = [\n"
+    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, Tokenizer]] = [\n"
     for non_terminal_name, tree in parsed_grammar.terminals:
         parser_expr = tree_to_python_parser_expression(
             tree, tokens, code, terminal_names, non_terminal_names

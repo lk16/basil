@@ -14,47 +14,47 @@ WHITESPACE = regex("[ \n]*") .
 TOKEN_NAME = regex("[A-Z_]+") .
 
 @ token
-PERIOD = regex("\\.") .
+PERIOD = "." .
 
 @ token
 LITERAL_EXPRESSION = regex("\"([^\\\\]|\\\\.)*?\"") .
 
 @ token
-DECORATOR_MARKER = regex("@") .
+DECORATOR_MARKER = "@" .
 
 @ token
-DECORATOR_PRUNE_HARD = regex("prune hard") .
+DECORATOR_PRUNE_HARD = "prune hard" .
 
 @ token
-DECORATOR_PRUNE_SOFT = regex("prune soft") .
+DECORATOR_PRUNE_SOFT = "prune soft" .
 
 @ token
-DECORATOR_TOKEN = regex("token") .
+DECORATOR_TOKEN = "token" .
 
 @ token
-EQUALS = regex("=") .
+EQUALS = "=" .
 
 @ token
-BRACKET_OPEN = regex("\\(") .
+BRACKET_OPEN = "(" .
 
 @ token
-BRACKET_AT_LEAST_ONCE = regex("\\)\\+") .
+BRACKET_AT_LEAST_ONCE = ")+" .
 
 @ token
-BRACKET_REPEAT = regex("\\)\\*") .
+BRACKET_REPEAT = ")*" .
 
 @ token
-BRACKET_OPTIONAL = regex("\\)\\?") .
+BRACKET_OPTIONAL = ")?" .
 
 // needs to be after other closing brackets
 @ token
-BRACKET_CLOSE = regex("\\)") .
+BRACKET_CLOSE = ")" .
 
 @ token
-REGEX_START = regex("regex\\(") .
+REGEX_START = "regex(" .
 
 @ token
-VERTICAL_BAR = regex("\\|") .
+VERTICAL_BAR = "|" .
 
 // ---
 
@@ -82,6 +82,6 @@ TOKEN_COMPOUND_EXPRESSION = CONCATENATION_EXPRESSION | CONJUNCTION_EXPRESSION | 
 CONJUNCTION_EXPRESSION = TOKEN_EXPRESSION VERTICAL_BAR TOKEN_COMPOUND_EXPRESSION .
 
 @ prune soft
-TOKEN_EXPRESSION = TOKEN_NAME | REGEX_EXPRESSION .
+TOKEN_EXPRESSION = TOKEN_NAME | REGEX_EXPRESSION | LITERAL_EXPRESSION .
 
 REGEX_EXPRESSION = REGEX_START LITERAL_EXPRESSION BRACKET_CLOSE .

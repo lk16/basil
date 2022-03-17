@@ -18,7 +18,7 @@ from parser.parser import (
     RepeatExpression,
     TerminalExpression,
 )
-from parser.tokenizer import Literal, NewTokenizer, Regex, TokenDescriptor
+from parser.tokenizer import Literal, Regex, TokenDescriptor, Tokenizer
 from parser.tree import Token, Tree
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -166,7 +166,7 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 
 
 def parse(code: str) -> Tuple[List[Token], Tree]:
-    tokens: List[Token] = NewTokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
+    tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
     tree: Tree = Parser(
         tokens,
         code,

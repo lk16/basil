@@ -1,7 +1,6 @@
 # TODO
 
 ### Tokenize
-[ ] create `Tokenizer` class like `Parser`
 [ ] move `token_type` into `TokenDescriptor`
 [ ] move `InternalParseError` into `ParseError`
 [ ] implement `flatten` decorator for non terminals

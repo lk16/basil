@@ -32,7 +32,7 @@ class Literal(TokenDescriptor):
     value: str
 
 
-class NewTokenizer:
+class Tokenizer:
     def __init__(
         self,
         code: str,

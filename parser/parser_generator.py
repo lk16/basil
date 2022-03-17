@@ -205,7 +205,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "    TerminalExpression,\n"
     parser_script += ")\n"
     parser_script += (
-        "from parser.tokenizer import Literal, Regex, Tokenizable, Tokenizer\n"
+        "from parser.tokenizer import Literal, Regex, TokenDescriptor, Tokenizer\n"
     )
     parser_script += "from parser.tree import Token, Tree\n"
     parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
@@ -220,7 +220,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    {terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
-    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, Tokenizer]] = [\n"
+    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, TokenDescriptor]] = [\n"
     for non_terminal_name, tree in parsed_grammar.terminals:
         parser_expr = tree_to_python_tokenizer_expression(tree, tokens, code)
         parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
@@ -264,7 +264,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
-    parser_script += "    tokens: List[Token] = NewTokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
+    parser_script += "    tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
 
     parser_script += '    tree: Tree = Parser(tokens, code, NON_TERMINAL_RULES, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS, "ROOT").parse()\n'
 

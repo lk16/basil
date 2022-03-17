@@ -75,7 +75,7 @@ class NonTerminal(IntEnum):
     CONJUNCTION_EXPRESSION = next(next_offset)
     DECORATOR = next(next_offset)
     DECORATOR_VALUE = next(next_offset)
-    LINE = next(next_offset)
+    GRAMMAR_ENTRY = next(next_offset)
     REGEX_EXPRESSION = next(next_offset)
     ROOT = next(next_offset)
     TOKEN_COMPOUND_EXPRESSION = next(next_offset)
@@ -119,16 +119,18 @@ NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
         TerminalExpression(Terminal.DECORATOR_PRUNE_SOFT),
         TerminalExpression(Terminal.DECORATOR_TOKEN),
     ),
-    NonTerminal.LINE: ConjunctionExpression(
+    NonTerminal.GRAMMAR_ENTRY: ConcatenationExpression(
+        RepeatExpression(NonTerminalExpression(NonTerminal.DECORATOR)),
         NonTerminalExpression(NonTerminal.TOKEN_DEFINITION),
-        NonTerminalExpression(NonTerminal.DECORATOR),
     ),
     NonTerminal.REGEX_EXPRESSION: ConcatenationExpression(
         TerminalExpression(Terminal.REGEX_START),
         TerminalExpression(Terminal.LITERAL_EXPRESSION),
         TerminalExpression(Terminal.BRACKET_CLOSE),
     ),
-    NonTerminal.ROOT: RepeatExpression(NonTerminalExpression(NonTerminal.LINE)),
+    NonTerminal.ROOT: RepeatExpression(
+        NonTerminalExpression(NonTerminal.GRAMMAR_ENTRY)
+    ),
     NonTerminal.TOKEN_COMPOUND_EXPRESSION: ConjunctionExpression(
         NonTerminalExpression(NonTerminal.CONCATENATION_EXPRESSION),
         NonTerminalExpression(NonTerminal.CONJUNCTION_EXPRESSION),
@@ -159,7 +161,6 @@ HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()
 
 
 SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
-    NonTerminal.LINE,
     NonTerminal.TOKEN_COMPOUND_EXPRESSION,
     NonTerminal.TOKEN_EXPRESSION,
 }

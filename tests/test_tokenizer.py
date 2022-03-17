@@ -1,6 +1,12 @@
 from enum import IntEnum, auto
 from parser.exceptions import InternalParseError
-from parser.tokenizer import RegexTokenizer, Token, _check_terminal_rules, tokenize
+from parser.tokenizer import (
+    RegexTokenizer,
+    Token,
+    Tokenizer,
+    _check_terminal_rules,
+    tokenize,
+)
 from typing import List, Set, Tuple
 
 import pytest
@@ -12,7 +18,7 @@ def test_tokenize_simple() -> None:
         B = auto()
 
     code = "ab"
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a")),
         (DummyEnum.B, RegexTokenizer("b")),
     ]
@@ -33,7 +39,7 @@ def test_check_terminal_rules_missing() -> None:
         A = auto()
         B = auto()
 
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a")),
     ]
 
@@ -46,7 +52,7 @@ def test_check_terminal_rules_duplicate() -> None:
         A = auto()
         B = auto()
 
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a")),
         (DummyEnum.A, RegexTokenizer("a")),
         (DummyEnum.B, RegexTokenizer("b")),
@@ -67,7 +73,7 @@ def test_tokenize_empty_match() -> None:
         B = auto()
 
     code = "b"
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a*")),
         (DummyEnum.B, RegexTokenizer("b")),
     ]
@@ -88,7 +94,7 @@ def test_tokenize_pruned_terminal() -> None:
         C = auto()
 
     code = "abc"
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a")),
         (DummyEnum.B, RegexTokenizer("b")),
         (DummyEnum.C, RegexTokenizer("c")),
@@ -114,7 +120,7 @@ def test_tokenize_fail() -> None:
         C = auto()
 
     code = "d"
-    terminal_rules: List[Tuple[IntEnum, RegexTokenizer]] = [
+    terminal_rules: List[Tuple[IntEnum, Tokenizer]] = [
         (DummyEnum.A, RegexTokenizer("a")),
         (DummyEnum.B, RegexTokenizer("b")),
         (DummyEnum.C, RegexTokenizer("c")),

@@ -148,50 +148,49 @@ def load_parsed_grammar(  # noqa: C901
 
     parsed_grammar = ParsedGrammar([], [], set(), set(), [], set())
 
-    prune_decorator: Optional[str] = None
-    is_terminal = False
     for grammar_item in tree.children:
+        prune_decorator: Optional[str] = None
+        is_terminal = False
 
-        if grammar_item.token_type == NonTerminal.DECORATOR:
-            decorator = grammar_item[1].value(tokens, code)
+        for decorator in grammar_item.children[:-1]:
+            assert decorator.token_type == NonTerminal.DECORATOR
+            decorator_value = decorator[1].value(tokens, code)
 
-            if decorator.startswith("prune"):
-                prune_decorator = decorator
-            elif decorator == "token":
+            if decorator_value.startswith("prune"):
+                prune_decorator = decorator_value
+            elif decorator_value == "token":
                 is_terminal = True
             else:  # pragma: nocover
                 raise NotImplementedError
 
-        if grammar_item.token_type == NonTerminal.TOKEN_DEFINITION:
-            name = grammar_item[0].value(tokens, code)
+        token_definition = grammar_item[-1]
 
-            if is_terminal:
-                terminal = (name, grammar_item[2])
+        assert token_definition.token_type == NonTerminal.TOKEN_DEFINITION
+        token_name = grammar_item[-1][0].value(tokens, code)
 
-                parsed_grammar.terminals.append(terminal)
+        if is_terminal:
+            terminal = (token_name, token_definition[2])
+            parsed_grammar.terminals.append(terminal)
 
-                if prune_decorator:
-                    if prune_decorator == "prune hard":
-                        parsed_grammar.pruned_terminals.add(name)
-                    elif prune_decorator == "prune soft":
-                        raise ValueError("Soft pruning doesn't make sense for tokens")
-                    else:  # pragma: nocover
-                        raise NotImplementedError
+            if prune_decorator:
+                if prune_decorator == "prune hard":
+                    parsed_grammar.pruned_terminals.add(token_name)
+                elif prune_decorator == "prune soft":
+                    raise ValueError("Soft pruning doesn't make sense for tokens")
+                else:  # pragma: nocover
+                    raise NotImplementedError
 
-            else:
-                non_terminal = (name, grammar_item[2])
-                parsed_grammar.non_terminals.append(non_terminal)
+        else:
+            non_terminal = (token_name, token_definition[2])
+            parsed_grammar.non_terminals.append(non_terminal)
 
-                if prune_decorator:
-                    if prune_decorator == "prune hard":
-                        parsed_grammar.hard_pruned_non_terminals.add(name)
-                    elif prune_decorator == "prune soft":
-                        parsed_grammar.soft_pruned_non_terminals.add(name)
-                    else:  # pragma: nocover
-                        raise NotImplementedError
-
-            prune_decorator = None
-            is_terminal = False
+            if prune_decorator:
+                if prune_decorator == "prune hard":
+                    parsed_grammar.hard_pruned_non_terminals.add(token_name)
+                elif prune_decorator == "prune soft":
+                    parsed_grammar.soft_pruned_non_terminals.add(token_name)
+                else:  # pragma: nocover
+                    raise NotImplementedError
 
     for name, tree in parsed_grammar.terminals:
         try:

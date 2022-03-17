@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from enum import IntEnum
 from parser.exceptions import InternalParseError
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 
 @dataclass
@@ -15,13 +15,15 @@ class Token:
         return code[self.offset : self.offset + self.length]
 
 
+@dataclass
 class TokenDescriptor:
-    ...
+    token_type: IntEnum
 
 
 @dataclass
 class Regex(TokenDescriptor):
-    def __init__(self, regex: str) -> None:
+    def __init__(self, token_type: IntEnum, regex: str) -> None:
+        self.token_type = token_type
         self.value = re.compile(regex)
 
     value: re.Pattern[str]
@@ -36,7 +38,7 @@ class Tokenizer:
     def __init__(
         self,
         code: str,
-        terminal_rules: List[Tuple[IntEnum, TokenDescriptor]],
+        terminal_rules: List[TokenDescriptor],
         pruned_terminals: Set[IntEnum],
     ) -> None:
         self.code = code
@@ -44,9 +46,9 @@ class Tokenizer:
         self.pruned_terminals = pruned_terminals
 
     def _check_terminal_rules(self) -> None:
-        enum_type = type(self.terminal_rules[0][0])
+        enum_type = type(self.terminal_rules[0].token_type)
 
-        found_enum_values = {item[0] for item in self.terminal_rules}
+        found_enum_values = {item.token_type for item in self.terminal_rules}
 
         if found_enum_values != set(enum_type) or len(self.terminal_rules) != len(
             enum_type
@@ -67,14 +69,18 @@ class Tokenizer:
         while offset < len(self.code):
             token_match = False
 
-            for token_type, tokenizable in self.terminal_rules:
+            for token_descriptor in self.terminal_rules:
 
                 # tokenize as literal or regex
-                token_length = tokenizables[type(tokenizable)](tokenizable, offset)
+                token_length = tokenizables[type(token_descriptor)](
+                    token_descriptor, offset
+                )
 
                 if token_length is not None:
-                    if token_type not in self.pruned_terminals:
-                        tokens.append(Token(token_type, offset, token_length))
+                    if token_descriptor.token_type not in self.pruned_terminals:
+                        tokens.append(
+                            Token(token_descriptor.token_type, offset, token_length)
+                        )
 
                     offset += token_length
                     token_match = True

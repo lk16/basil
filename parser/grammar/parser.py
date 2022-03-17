@@ -46,24 +46,24 @@ class Terminal(IntEnum):
     WHITESPACE = next(next_offset)
 
 
-TERMINAL_RULES: List[Tuple[IntEnum, TokenDescriptor]] = [
-    (Terminal.COMMENT, Regex("//[^\n]*")),
-    (Terminal.WHITESPACE, Regex("[ \n]*")),
-    (Terminal.TOKEN_NAME, Regex("[A-Z_]+")),
-    (Terminal.PERIOD, Literal(".")),
-    (Terminal.LITERAL_EXPRESSION, Regex('"([^\\\\]|\\\\.)*?"')),
-    (Terminal.DECORATOR_MARKER, Literal("@")),
-    (Terminal.DECORATOR_PRUNE_HARD, Literal("prune hard")),
-    (Terminal.DECORATOR_PRUNE_SOFT, Literal("prune soft")),
-    (Terminal.DECORATOR_TOKEN, Literal("token")),
-    (Terminal.EQUALS, Literal("=")),
-    (Terminal.BRACKET_OPEN, Literal("(")),
-    (Terminal.BRACKET_AT_LEAST_ONCE, Literal(")+")),
-    (Terminal.BRACKET_REPEAT, Literal(")*")),
-    (Terminal.BRACKET_OPTIONAL, Literal(")?")),
-    (Terminal.BRACKET_CLOSE, Literal(")")),
-    (Terminal.REGEX_START, Literal("regex(")),
-    (Terminal.VERTICAL_BAR, Literal("|")),
+TERMINAL_RULES: List[TokenDescriptor] = [
+    Regex(Terminal.COMMENT, "//[^\n]*"),
+    Regex(Terminal.WHITESPACE, "[ \n]*"),
+    Regex(Terminal.TOKEN_NAME, "[A-Z_]+"),
+    Literal(Terminal.PERIOD, "."),
+    Regex(Terminal.LITERAL_EXPRESSION, '"([^\\\\]|\\\\.)*?"'),
+    Literal(Terminal.DECORATOR_MARKER, "@"),
+    Literal(Terminal.DECORATOR_PRUNE_HARD, "prune hard"),
+    Literal(Terminal.DECORATOR_PRUNE_SOFT, "prune soft"),
+    Literal(Terminal.DECORATOR_TOKEN, "token"),
+    Literal(Terminal.EQUALS, "="),
+    Literal(Terminal.BRACKET_OPEN, "("),
+    Literal(Terminal.BRACKET_AT_LEAST_ONCE, ")+"),
+    Literal(Terminal.BRACKET_REPEAT, ")*"),
+    Literal(Terminal.BRACKET_OPTIONAL, ")?"),
+    Literal(Terminal.BRACKET_CLOSE, ")"),
+    Literal(Terminal.REGEX_START, "regex("),
+    Literal(Terminal.VERTICAL_BAR, "|"),
 ]
 
 

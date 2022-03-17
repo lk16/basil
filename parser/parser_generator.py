@@ -9,16 +9,19 @@ from typing import List, Optional, Set, Tuple
 from black import FileMode, format_str
 
 
-def tree_to_python_tokenizer_expression(
-    tree: Tree, tokens: List[Token], code: str
+def tree_to_python_token_descriptor(
+    tree: Tree,
+    tokens: List[Token],
+    code: str,
+    token_name: str,
 ) -> str:
     if tree.token_type == Terminal.LITERAL_EXPRESSION:
         literal = tree.value(tokens, code)
-        return f"Literal({literal})"
+        return f"Literal(Terminal.{token_name}, {literal})"
 
     elif tree.token_type == NonTerminal.REGEX_EXPRESSION:
         regex = tree.children[1].value(tokens, code)
-        return f"Regex({regex})"
+        return f"Regex(Terminal.{token_name}, {regex})"
 
     else:  # pragma: nocover
         raise NotImplementedError
@@ -220,10 +223,12 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         parser_script += f"    {terminal_name} = next(next_offset)\n"
     parser_script += "\n\n"
 
-    parser_script += "TERMINAL_RULES: List[Tuple[IntEnum, TokenDescriptor]] = [\n"
-    for non_terminal_name, tree in parsed_grammar.terminals:
-        parser_expr = tree_to_python_tokenizer_expression(tree, tokens, code)
-        parser_script += f"    (Terminal.{non_terminal_name}, {parser_expr}),\n"
+    parser_script += "TERMINAL_RULES: List[TokenDescriptor] = [\n"
+    for terminal_name, tree in parsed_grammar.terminals:
+        token_descriptor = tree_to_python_token_descriptor(
+            tree, tokens, code, terminal_name
+        )
+        parser_script += f"    {token_descriptor},\n"
     parser_script += "]\n\n\n"
 
     parser_script += "class NonTerminal(IntEnum):\n"

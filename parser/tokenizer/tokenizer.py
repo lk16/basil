@@ -19,20 +19,25 @@ class Tokenizer:
         enum_type = type(self.terminal_rules[0].token_type)
 
         found_enum_values = {item.token_type for item in self.terminal_rules}
+        expected_enum_values: Set[IntEnum] = set(enum_type)
 
-        if found_enum_values != set(enum_type) or len(self.terminal_rules) != len(
-            enum_type
-        ):
-            raise ValueError("Terminal rules has duplicates or missing items.")
+        unexpected_enum_values = found_enum_values - expected_enum_values
+        missing_enum_values = expected_enum_values - found_enum_values
+
+        if unexpected_enum_values:
+            raise ValueError(
+                f"Terminal rules has unexpected values: "
+                + ", ".join(str(item) for item in unexpected_enum_values)
+            )
+
+        if missing_enum_values:
+            raise ValueError(
+                f"Terminal rules has missing values: "
+                + ", ".join(str(item) for item in missing_enum_values)
+            )
 
     def tokenize(self) -> List[Token]:
         self._check_terminal_rules()
-
-        tokenizables = {
-            Literal: self._tokenize_literal,
-            Regex: self._tokenize_regex,
-        }
-
         tokens: List[Token] = []
         offset = 0
 
@@ -41,10 +46,10 @@ class Tokenizer:
 
             for token_descriptor in self.terminal_rules:
 
-                # tokenize as literal or regex
-                token_length = tokenizables[type(token_descriptor)](
-                    token_descriptor, offset
-                )
+                if isinstance(token_descriptor, Literal):
+                    token_length = self._tokenize_literal(token_descriptor, offset)
+                elif isinstance(token_descriptor, Regex):
+                    token_length = self._tokenize_regex(token_descriptor, offset)
 
                 if token_length is not None:
                     if token_descriptor.token_type not in self.pruned_terminals:

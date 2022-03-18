@@ -8,18 +8,18 @@
 
 from enum import IntEnum
 from itertools import count
-from parser.parser import (
+from parser.parser.models import (
     ConcatenationExpression,
     ConjunctionExpression,
     Expression,
     NonTerminalExpression,
     OptionalExpression,
-    Parser,
     RepeatExpression,
     TerminalExpression,
+    Tree,
 )
-from parser.tokenizer import Literal, Regex, TokenDescriptor, Tokenizer
-from parser.tree import Token, Tree
+from parser.parser.parser import Parser
+from parser.tokenizer.tokenizer import Literal, Regex, Token, TokenDescriptor, Tokenizer
 from typing import Dict, List, Optional, Set, Tuple
 
 # We can't use enum.auto, since Terminal and NonTerminal will have colliding values

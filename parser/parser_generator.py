@@ -2,7 +2,8 @@ import sys
 from dataclasses import dataclass
 from parser.exceptions import ParseError
 from parser.grammar.parser import NonTerminal, Terminal, parse
-from parser.tree import Token, Tree
+from parser.parser.models import Tree
+from parser.tokenizer.models import Token
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 

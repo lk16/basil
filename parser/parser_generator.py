@@ -198,20 +198,22 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script = ""
     parser_script += "from enum import IntEnum\n"
     parser_script += "from itertools import count\n"
-    parser_script += "from parser.parser import (\n"
+    parser_script += "from parser.parser.models import (\n"
     parser_script += "    ConcatenationExpression,\n"
     parser_script += "    ConjunctionExpression,\n"
     parser_script += "    Expression,\n"
     parser_script += "    NonTerminalExpression,\n"
     parser_script += "    OptionalExpression,\n"
-    parser_script += "    Parser,\n"
     parser_script += "    RepeatExpression,\n"
     parser_script += "    TerminalExpression,\n"
+    parser_script += "    Tree,\n"
     parser_script += ")\n"
+    parser_script += "from parser.parser.parser import Parser\n"
     parser_script += (
-        "from parser.tokenizer import Literal, Regex, TokenDescriptor, Tokenizer\n"
+        "from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor\n"
     )
-    parser_script += "from parser.tree import Token, Tree\n"
+    parser_script += "from parser.tokenizer.tokenizer import Tokenizer\n"
+
     parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
     parser_script += "\n"
 

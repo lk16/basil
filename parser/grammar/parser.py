@@ -19,7 +19,8 @@ from parser.parser.models import (
     Tree,
 )
 from parser.parser.parser import Parser
-from parser.tokenizer.tokenizer import Literal, Regex, Token, TokenDescriptor, Tokenizer
+from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor
+from parser.tokenizer.tokenizer import Tokenizer
 from typing import Dict, List, Optional, Set, Tuple
 
 # We can't use enum.auto, since Terminal and NonTerminal will have colliding values

@@ -274,7 +274,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
     parser_script += "    tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
 
-    parser_script += '    tree: Tree = Parser(tokens, code, NON_TERMINAL_RULES, HARD_PRUNED_NON_TERMINALS, SOFT_PRUNED_NON_TERMINALS, "ROOT").parse()\n'
+    parser_script += '    tree: Tree = Parser(tokens=tokens, code=code, non_terminal_rules=NON_TERMINAL_RULES, prune_hard_tokens=HARD_PRUNED_NON_TERMINALS, prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS, root_token="ROOT").parse()\n'
 
     parser_script += "    return tokens, tree\n"
 

@@ -169,11 +169,11 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 def parse(code: str) -> Tuple[List[Token], Tree]:
     tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
     tree: Tree = Parser(
-        tokens,
-        code,
-        NON_TERMINAL_RULES,
-        HARD_PRUNED_NON_TERMINALS,
-        SOFT_PRUNED_NON_TERMINALS,
-        "ROOT",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=NON_TERMINAL_RULES,
+        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,
+        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,
+        root_token="ROOT",
     ).parse()
     return tokens, tree

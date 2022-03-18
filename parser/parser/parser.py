@@ -25,6 +25,7 @@ from typing import Callable, Dict, List, Optional, Set
 class Parser:
     def __init__(
         self,
+        *,
         tokens: List[Token],
         code: str,
         non_terminal_rules: Dict[IntEnum, Expression],

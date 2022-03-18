@@ -2,11 +2,11 @@
 
 from dataclasses import replace
 from enum import IntEnum
-from parser.exceptions import (
-    InternalParseError,
-    ParseError,
-    UnexpectedTokenType,
-    UnhandledTokenType,
+from parser.exceptions import InternalParseError, ParseError
+from parser.parser.exceptions import (
+    MissingNonTerminalTypes,
+    MissingRootNonTerminalType,
+    UnexpectedNonTerminalTypes,
 )
 from parser.parser.models import (
     ConcatenationExpression,
@@ -201,20 +201,17 @@ class Parser:
     def _check_non_terminal_rules(self) -> None:
         tokens_enum = type(list((self.non_terminal_rules.keys()))[0])
 
-        for enum_value in tokens_enum:
-            try:
-                self.non_terminal_rules[enum_value]
-            except KeyError:
-                raise UnhandledTokenType(enum_value)
-
         unexpected_keys = self.non_terminal_rules.keys() - set(tokens_enum)
-        if unexpected_keys:
-            raise UnexpectedTokenType(unexpected_keys)
+        missing_keys: Set[IntEnum] = set(tokens_enum) - self.non_terminal_rules.keys()
 
-        try:
-            tokens_enum["ROOT"]
-        except KeyError:
-            raise ValueError(f"Non-terminals do not have a ROOT item")
+        if missing_keys:
+            raise MissingNonTerminalTypes(missing_keys)
+
+        if unexpected_keys:
+            raise UnexpectedNonTerminalTypes(unexpected_keys)
+
+        if "ROOT" not in tokens_enum.__members__:
+            raise MissingRootNonTerminalType
 
     def _humanize_parse_error(self, e: InternalParseError) -> ParseError:
         if not self.tokens:

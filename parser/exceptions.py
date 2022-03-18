@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import List, Optional, Set
+from typing import List, Optional
 
 
 class InternalParseError(Exception):
@@ -44,24 +44,3 @@ class InternalTokenizeError(Exception):
         self.token_offset = offset
         self.token_type = token_type
         super().__init__()
-
-
-class UnhandledTokenType(Exception):
-    """
-    Indicates rewrite rules misses an entry.
-    """
-
-    def __init__(self, token_type: IntEnum) -> None:
-        super().__init__(f"Unhandled token type {token_type.name}")
-
-
-class UnexpectedTokenType(Exception):
-    """
-    Indicates rewrite rules has an unexpected entry.
-    """
-
-    def __init__(self, unexpected_keys: Set[IntEnum]) -> None:
-        super().__init__(
-            f"Rewrite rules contain {len(unexpected_keys)} items, with keys: "
-            + ", ".join(key.__repr__() for key in unexpected_keys)
-        )

@@ -1,5 +1,6 @@
 from enum import IntEnum
 from parser.exceptions import InternalParseError
+from parser.tokenizer.exceptions import MissingTerminalTypes, UnexpectedTerminalTypes
 from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor
 from typing import List, Optional, Set
 
@@ -25,16 +26,10 @@ class Tokenizer:
         missing_enum_values = expected_enum_values - found_enum_values
 
         if unexpected_enum_values:
-            raise ValueError(
-                f"Terminal rules has unexpected values: "
-                + ", ".join(str(item) for item in unexpected_enum_values)
-            )
+            raise UnexpectedTerminalTypes(unexpected_enum_values)
 
         if missing_enum_values:
-            raise ValueError(
-                f"Terminal rules has missing values: "
-                + ", ".join(str(item) for item in missing_enum_values)
-            )
+            raise MissingTerminalTypes(missing_enum_values)
 
     def tokenize(self) -> List[Token]:
         self._check_terminal_rules()

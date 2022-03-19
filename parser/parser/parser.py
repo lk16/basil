@@ -19,7 +19,7 @@ from parser.parser.models import (
     Tree,
 )
 from parser.tokenizer.tokenizer import Token
-from typing import Callable, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 
 class Parser:
@@ -57,10 +57,10 @@ class Parser:
 
         empty_tree = Tree(0, 0, root_non_terminal, [])
 
-        pruned_tree = prune_no_token_type(tree) or empty_tree
+        pruned_tree = _prune_no_token_type(tree) or empty_tree
 
         pruned_tree = (
-            prune_by_token_types(pruned_tree, self.pruned_non_terminals) or empty_tree
+            _prune_by_token_types(pruned_tree, self.pruned_non_terminals) or empty_tree
         )
 
         return pruned_tree
@@ -198,42 +198,41 @@ class Parser:
             raise UnexpectedNonTerminalTypes(unexpected_keys)
 
 
-def prune_by_token_types(
+def _get_descendants_without_token_types(
+    tree: Tree, token_types: Set[IntEnum]
+) -> List[Tree]:
+    with_token_type: List[Tree] = []
+
+    for child in tree.children:
+        if child.token_type in token_types:
+            with_token_type += _get_descendants_without_token_types(child, token_types)
+        else:
+            with_token_type.append(
+                replace(
+                    child,
+                    children=_get_descendants_without_token_types(child, token_types),
+                )
+            )
+
+    return with_token_type
+
+
+def _prune_by_token_types(
     tree: Optional[Tree], token_types: Set[IntEnum]
 ) -> Optional[Tree]:
     if not tree:
         return None
 
-    def get_descendants_without_token_types(
-        tree: Tree, token_types: Set[IntEnum]
-    ) -> List[Tree]:
-        with_token_type: List[Tree] = []
-
-        for child in tree.children:
-            if child.token_type in token_types:
-                with_token_type += get_descendants_without_token_types(
-                    child, token_types
-                )
-            else:
-                with_token_type.append(
-                    replace(
-                        child,
-                        children=get_descendants_without_token_types(
-                            child, token_types
-                        ),
-                    )
-                )
-
-        return with_token_type
-
-    descendants_with_token_type = get_descendants_without_token_types(tree, token_types)
+    descendants_with_token_type = _get_descendants_without_token_types(
+        tree, token_types
+    )
 
     children = [
         Tree(
             child.token_offset,
             child.token_count,
             child.token_type,
-            get_descendants_without_token_types(child, token_types),
+            _get_descendants_without_token_types(child, token_types),
         )
         for child in descendants_with_token_type
     ]
@@ -241,48 +240,29 @@ def prune_by_token_types(
     return Tree(tree.token_offset, tree.token_count, tree.token_type, children)
 
 
-def prune_tree(
-    tree: Optional[Tree], prune_condition: Callable[[Tree], bool]
-) -> Optional[Tree]:
-    if not tree:
-        return None
-
-    if prune_condition(tree):
-        return None
-
-    pruned_children: List[Tree] = []
+def _get_descendants_with_token_type(tree: Tree) -> List[Tree]:
+    with_token_type: List[Tree] = []
 
     for child in tree.children:
-        child_tree = prune_tree(child, prune_condition)
-        if child_tree:
-            pruned_children.append(child_tree)
+        if child.token_type is None:
+            with_token_type += _get_descendants_with_token_type(child)
+        else:
+            with_token_type.append(
+                replace(child, children=_get_descendants_with_token_type(child))
+            )
 
-    new_tree = replace(tree, children=pruned_children)
-    return new_tree
+    return with_token_type
 
 
-def prune_no_token_type(tree: Optional[Tree]) -> Optional[Tree]:
+def _prune_no_token_type(tree: Optional[Tree]) -> Optional[Tree]:
     if not tree:
         return None
 
     assert tree.token_type is not None
 
-    def get_descendants_with_token_type(tree: Tree) -> List[Tree]:
-        with_token_type: List[Tree] = []
-
-        for child in tree.children:
-            if child.token_type is None:
-                with_token_type += get_descendants_with_token_type(child)
-            else:
-                with_token_type.append(
-                    replace(child, children=get_descendants_with_token_type(child))
-                )
-
-        return with_token_type
-
     return Tree(
         tree.token_offset,
         tree.token_count,
         tree.token_type,
-        get_descendants_with_token_type(tree),
+        _get_descendants_with_token_type(tree),
     )

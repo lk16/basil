@@ -167,7 +167,13 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 
 
 def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
-    tokens: List[Token] = Tokenizer(filename, code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
+    tokens: List[Token] = Tokenizer(
+        filename=filename,
+        code=code,
+        terminal_rules=TERMINAL_RULES,
+        pruned_terminals=PRUNED_TERMINALS,
+    ).tokenize()
+
     tree: Tree = Parser(
         filename=filename,
         tokens=tokens,
@@ -177,4 +183,5 @@ def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
         prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,
         root_token="ROOT",
     ).parse()
+
     return tokens, tree

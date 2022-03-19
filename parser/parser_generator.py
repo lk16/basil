@@ -273,18 +273,24 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
 
     parser_script += (
         "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
-        "    tokens: List[Token] = Tokenizer(filename, code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
-        + "    tree: Tree = Parser(\n"
-        + "        filename=filename,\n"
-        + "        tokens=tokens,\n"
-        + "        code=code,\n"
-        + "        non_terminal_rules=NON_TERMINAL_RULES,\n"
-        + "        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,\n"
-        + "        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,\n"
-        + '        root_token="ROOT"\n'
-        + "    ).parse()\n"
-        + "\n"
-        + "    return tokens, tree\n"
+        "    tokens: List[Token] = Tokenizer(\n"
+        "        filename=filename,\n"
+        "        code=code,\n"
+        "        terminal_rules=TERMINAL_RULES,\n"
+        "        pruned_terminals=PRUNED_TERMINALS,\n"
+        "    ).tokenize()\n"
+        "\n"
+        "    tree: Tree = Parser(\n"
+        "        filename=filename,\n"
+        "        tokens=tokens,\n"
+        "        code=code,\n"
+        "        non_terminal_rules=NON_TERMINAL_RULES,\n"
+        "        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,\n"
+        "        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,\n"
+        '        root_token="ROOT"\n'
+        "    ).parse()\n"
+        "\n"
+        "    return tokens, tree\n"
     )
 
     # format with black

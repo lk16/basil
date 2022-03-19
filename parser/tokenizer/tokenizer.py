@@ -11,6 +11,7 @@ from typing import List, Optional, Set
 class Tokenizer:
     def __init__(
         self,
+        *,
         filename: str,
         code: str,
         terminal_rules: List[TokenDescriptor],

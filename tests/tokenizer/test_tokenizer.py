@@ -29,7 +29,12 @@ def test_check_terminal_rules_extra() -> None:
     ]
 
     with pytest.raises(UnexpectedTerminalTypes) as e:
-        Tokenizer("foo.txt", "", terminal_rules, set()).tokenize()
+        Tokenizer(
+            filename="foo.txt",
+            code="",
+            terminal_rules=terminal_rules,
+            pruned_terminals=set(),
+        ).tokenize()
 
     assert str(e.value) == "Terminal rewrite rules contain 1 unexpected types: Extra"
 
@@ -41,7 +46,12 @@ def test_check_terminal_rules_missing() -> None:
     ]
 
     with pytest.raises(MissingTerminalTypes) as e:
-        Tokenizer("foo.txt", "", terminal_rules, set()).tokenize()
+        Tokenizer(
+            filename="foo.txt",
+            code="",
+            terminal_rules=terminal_rules,
+            pruned_terminals=set(),
+        ).tokenize()
 
     assert str(e.value) == "Terminal rewrite rules has 1 missing types: C"
 
@@ -54,7 +64,12 @@ def test_tokenize_simple() -> None:
         Literal(DummyTerminal.C, "c"),
     ]
 
-    tokens = Tokenizer("foo.txt", code, terminal_rules, set()).tokenize()
+    tokens = Tokenizer(
+        filename="foo.txt",
+        code=code,
+        terminal_rules=terminal_rules,
+        pruned_terminals=set(),
+    ).tokenize()
 
     assert tokens == [
         Token(DummyTerminal.A, 0, 1),
@@ -70,7 +85,12 @@ def test_tokenize_regex() -> None:
         Literal(DummyTerminal.C, "c"),
     ]
 
-    tokens = Tokenizer("foo.txt", code, terminal_rules, set()).tokenize()
+    tokens = Tokenizer(
+        filename="foo.txt",
+        code=code,
+        terminal_rules=terminal_rules,
+        pruned_terminals=set(),
+    ).tokenize()
 
     assert tokens == [
         Token(DummyTerminal.A, 0, 4),
@@ -87,7 +107,12 @@ def test_tokenize_fail() -> None:
     ]
 
     with pytest.raises(TokenizerError) as e:
-        Tokenizer("foo.txt", code, terminal_rules, set()).tokenize()
+        Tokenizer(
+            filename="foo.txt",
+            code=code,
+            terminal_rules=terminal_rules,
+            pruned_terminals=set(),
+        ).tokenize()
 
     assert e.value.filename == "foo.txt"
     assert e.value.code == code
@@ -102,7 +127,12 @@ def test_tokenize_regex_fail() -> None:
         Literal(DummyTerminal.C, "c"),
     ]
 
-    tokens = Tokenizer("foo.txt", code, terminal_rules, set()).tokenize()
+    tokens = Tokenizer(
+        filename="foo.txt",
+        code=code,
+        terminal_rules=terminal_rules,
+        pruned_terminals=set(),
+    ).tokenize()
 
     assert tokens == [
         Token(DummyTerminal.B, 0, 1),
@@ -117,7 +147,12 @@ def test_tokenize_prune() -> None:
         Regex(DummyTerminal.C, "[ \n]*"),
     ]
 
-    tokens = Tokenizer("foo.txt", code, terminal_rules, {DummyTerminal.C}).tokenize()
+    tokens = Tokenizer(
+        filename="foo.txt",
+        code=code,
+        terminal_rules=terminal_rules,
+        pruned_terminals={DummyTerminal.C},
+    ).tokenize()
 
     assert tokens == [
         Token(DummyTerminal.A, 3, 1),

@@ -1,5 +1,4 @@
-from enum import IntEnum
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 
 class BaseParseError(Exception):
@@ -35,41 +34,37 @@ class BaseParseError(Exception):
         return ""
 
 
-class InternalParseError(Exception):
-    def __init__(self, offset: int, token_type: Optional[IntEnum]) -> None:
-        self.token_offset = offset
-        self.token_type = token_type
-        super().__init__()
+# TODO move to parser/parser/exceptions.py
+class ParseError(BaseParseError):
+    def __init__(self, filename: str, code: str, offset: int) -> None:
+        super().__init__(filename, code, offset)
+        # TODO send expected_token_type as argument here?
 
+    def what(self) -> str:
+        line_num, col_num = self.get_line_column_numbers()
+        line = self.get_line()
 
-class ParseError(Exception):
-    def __init__(
-        self,
-        line_number: int,
-        column_number: int,
-        line: str,
-        expected_token_types: List[IntEnum],
-    ) -> None:
-        self.line_number = line_number
-        self.column_number = column_number
-        self.line = line
-        self.expected_token_types = expected_token_types
-
-        # TODO pass source file path
-        source_file = "<source_file>"
-
-        msg = (
-            f"Parse error at {source_file}:{line_number}:{column_number}\n"
-            + f"{self.line}\n"
-            + " " * (self.column_number - 1)
+        return (
+            f"Parse error at {self.filename}:{line_num}:{col_num}\n"
+            + f"{line}\n"
+            + " " * (col_num - 1)
             + "^"
         )
 
-        super().__init__(msg)
 
+# TODO move to parser/tokenizer/exceptions.py
+class TokenizerError(BaseParseError):
+    def __init__(self, filename: str, code: str, offset: int) -> None:
+        super().__init__(filename, code, offset)
+        # TODO send expected_token_types as argument here?
 
-class InternalTokenizeError(Exception):
-    def __init__(self, offset: int, token_type: Optional[IntEnum]) -> None:
-        self.token_offset = offset
-        self.token_type = token_type
-        super().__init__()
+    def what(self) -> str:
+        line_num, col_num = self.get_line_column_numbers()
+        line = self.get_line()
+
+        return (
+            f"Tokenize error at {self.filename}:{line_num}:{col_num}\n"
+            + f"{line}\n"
+            + " " * (col_num - 1)
+            + "^"
+        )

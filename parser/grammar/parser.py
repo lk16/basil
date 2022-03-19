@@ -35,8 +35,7 @@ class Terminal(IntEnum):
     BRACKET_REPEAT = next(next_offset)
     COMMENT = next(next_offset)
     DECORATOR_MARKER = next(next_offset)
-    DECORATOR_PRUNE_HARD = next(next_offset)
-    DECORATOR_PRUNE_SOFT = next(next_offset)
+    DECORATOR_PRUNE = next(next_offset)
     DECORATOR_TOKEN = next(next_offset)
     EQUALS = next(next_offset)
     LITERAL_EXPRESSION = next(next_offset)
@@ -54,8 +53,7 @@ TERMINAL_RULES: List[TokenDescriptor] = [
     Literal(Terminal.PERIOD, "."),
     Regex(Terminal.LITERAL_EXPRESSION, '"([^\\\\]|\\\\.)*?"'),
     Literal(Terminal.DECORATOR_MARKER, "@"),
-    Literal(Terminal.DECORATOR_PRUNE_HARD, "prune hard"),
-    Literal(Terminal.DECORATOR_PRUNE_SOFT, "prune soft"),
+    Literal(Terminal.DECORATOR_PRUNE, "prune"),
     Literal(Terminal.DECORATOR_TOKEN, "token"),
     Literal(Terminal.EQUALS, "="),
     Literal(Terminal.BRACKET_OPEN, "("),
@@ -118,8 +116,7 @@ NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
         NonTerminalExpression(NonTerminal.DECORATOR_VALUE),
     ),
     NonTerminal.DECORATOR_VALUE: ConjunctionExpression(
-        TerminalExpression(Terminal.DECORATOR_PRUNE_HARD),
-        TerminalExpression(Terminal.DECORATOR_PRUNE_SOFT),
+        TerminalExpression(Terminal.DECORATOR_PRUNE),
         TerminalExpression(Terminal.DECORATOR_TOKEN),
     ),
     NonTerminal.GRAMMAR_ENTRY: ConcatenationExpression(

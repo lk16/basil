@@ -208,3 +208,10 @@ def test_parser_non_terminal() -> None:
             Tree(token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[])
         ],
     )
+
+
+# TODO test file longer than ROOT expects
+
+# TODO test empty file fail
+
+# TODO test empty file success (ROOT = a*)

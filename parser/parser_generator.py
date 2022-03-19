@@ -1,13 +1,203 @@
 import sys
 from dataclasses import dataclass
 from parser.exceptions import BaseParseError
-from parser.grammar.parser import NonTerminal, Terminal, parse
+from parser.grammar.parser import NonTerminal, Terminal
+from parser.grammar.parser import parse as parse_grammar
 from parser.parser.models import Tree
 from parser.tokenizer.models import Token
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from black import FileMode, format_str
+
+
+@dataclass
+class ParsedGrammar:
+    terminals: List[Tuple[str, Tree]]
+    non_terminals: List[Tuple[str, Tree]]
+    soft_pruned_non_terminals: Set[str]
+    non_terminal_literals: List[str]
+    pruned_terminals: Set[str]
+
+
+class ParserGenerator:
+    def __init__(self, grammar_path: Path) -> None:
+        self.grammar_path = grammar_path.absolute()
+        self.code = self.grammar_path.read_text()
+        self.tokens, self.tree = parse_grammar(str(grammar_path), self.code)
+        self._generated_parser_code: Optional[str] = None
+
+    def _load_parsed_grammar(self) -> ParsedGrammar:
+        # TODO make more readable
+        parsed_grammar = ParsedGrammar([], [], set(), [], set())
+
+        for grammar_item in self.tree.children:
+            prune = False
+            is_terminal = False
+
+            for decorator in grammar_item.children[:-1]:
+                assert decorator.token_type == NonTerminal.DECORATOR
+                decorator_value = decorator[1].value(self.tokens, self.code)
+
+                if decorator_value == "prune":
+                    prune = True
+                elif decorator_value == "token":
+                    is_terminal = True
+                else:  # pragma: nocover
+                    raise NotImplementedError
+
+            token_definition = grammar_item[-1]
+
+            assert token_definition.token_type == NonTerminal.TOKEN_DEFINITION
+            token_name = grammar_item[-1][0].value(self.tokens, self.code)
+
+            if is_terminal:
+                terminal = (token_name, token_definition[2])
+                parsed_grammar.terminals.append(terminal)
+
+                if prune:
+                    parsed_grammar.pruned_terminals.add(token_name)
+
+            else:
+                non_terminal = (token_name, token_definition[2])
+                parsed_grammar.non_terminals.append(non_terminal)
+
+                if prune:
+                    parsed_grammar.soft_pruned_non_terminals.add(token_name)
+
+        return parsed_grammar
+
+    def _generate_parser_code(self) -> str:  # pragma: nocover
+        """
+        Reads the grammar file and generates a python parser file from it.
+        """
+        if self._generated_parser_code:
+            return self._generated_parser_code
+
+        parsed_grammar = self._load_parsed_grammar()
+
+        terminal_names = {item[0] for item in parsed_grammar.terminals}
+        non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
+
+        prefix_comments = "# ===================================== #\n"
+        prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
+        prefix_comments += "# ===================================== #\n\n"
+
+        # This turns off formatting for flake8, pycln and black
+        prefix_comments += "# flake8: noqa\n"
+        prefix_comments += "# fmt: off\n"
+        prefix_comments += "# nopycln: file\n\n"
+
+        parser_code = ""
+        parser_code += "from enum import IntEnum\n"
+        parser_code += "from itertools import count\n"
+        parser_code += "from parser.parser.models import (\n"
+        parser_code += "    ConcatenationExpression,\n"
+        parser_code += "    ConjunctionExpression,\n"
+        parser_code += "    Expression,\n"
+        parser_code += "    NonTerminalExpression,\n"
+        parser_code += "    OptionalExpression,\n"
+        parser_code += "    RepeatExpression,\n"
+        parser_code += "    TerminalExpression,\n"
+        parser_code += "    Tree,\n"
+        parser_code += ")\n"
+        parser_code += "from parser.parser.parser import Parser\n"
+        parser_code += "from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor\n"
+        parser_code += "from parser.tokenizer.tokenizer import Tokenizer\n"
+
+        parser_code += "from typing import Dict, List, Optional, Set, Tuple\n"
+        parser_code += "\n"
+
+        parser_code += "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
+        parser_code += "next_offset = count(start=1)\n"
+        parser_code += "\n\n"
+
+        parser_code += "class Terminal(IntEnum):\n"
+        for terminal_name, _ in sorted(parsed_grammar.terminals):
+            parser_code += f"    {terminal_name} = next(next_offset)\n"
+        parser_code += "\n\n"
+
+        parser_code += "TERMINAL_RULES: List[TokenDescriptor] = [\n"
+        for terminal_name, tree in parsed_grammar.terminals:
+            token_descriptor = tree_to_python_token_descriptor(
+                tree, self.tokens, self.code, terminal_name
+            )
+            parser_code += f"    {token_descriptor},\n"
+        parser_code += "]\n\n\n"
+
+        parser_code += "class NonTerminal(IntEnum):\n"
+        for non_terminal_name, _ in sorted(parsed_grammar.non_terminals):
+            parser_code += f"    {non_terminal_name} = next(next_offset)\n"
+        parser_code += "\n\n"
+
+        parser_code += "NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {\n"
+        for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
+            parser_expr = tree_to_python_parser_expression(
+                tree, self.tokens, self.code, terminal_names, non_terminal_names
+            )
+            parser_code += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
+        parser_code += "}\n\n\n"
+
+        if parsed_grammar.pruned_terminals:
+            parser_code += "PRUNED_TERMINALS: Set[IntEnum] = {\n"
+            for name in sorted(parsed_grammar.pruned_terminals):
+                parser_code += f"    Terminal.{name},\n"
+            parser_code += "}\n\n\n"
+        else:
+            parser_code += "PRUNED_TERMINALS: Set[IntEnum] = set()\n\n\n"
+
+        if parsed_grammar.soft_pruned_non_terminals:
+            parser_code += "PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
+            for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
+                parser_code += f"    NonTerminal.{non_terminal_name},\n"
+            parser_code += "}\n\n\n"
+        else:
+            parser_code += "PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
+
+        parser_code += (
+            "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
+            "    tokens: List[Token] = Tokenizer(\n"
+            "        filename=filename,\n"
+            "        code=code,\n"
+            "        terminal_rules=TERMINAL_RULES,\n"
+            "        pruned_terminals=PRUNED_TERMINALS,\n"
+            "    ).tokenize()\n"
+            "\n"
+            "    tree: Tree = Parser(\n"
+            "        filename=filename,\n"
+            "        tokens=tokens,\n"
+            "        code=code,\n"
+            "        non_terminal_rules=NON_TERMINAL_RULES,\n"
+            "        pruned_non_terminals=PRUNED_NON_TERMINALS,\n"
+            '        root_token="ROOT"\n'
+            "    ).parse()\n"
+            "\n"
+            "    return tokens, tree\n"
+        )
+
+        # format with black
+        parser_code = format_str(parser_code, mode=FileMode())
+
+        parser_code = prefix_comments + parser_code
+
+        self._generated_parser_code = parser_code
+        return parser_code
+
+    def is_up_to_date(self, parser_path: Path) -> bool:
+        if not parser_path.exists():
+            return False
+
+        return parser_path.read_text() == self._generate_parser_code()
+
+    def write_if_stale(self, parser_path: Path) -> None:
+        try:
+            generated_code = self._generate_parser_code()
+        except BaseParseError as e:
+            print(e.args[0], file=sys.stderr)
+            exit(1)
+
+        if not self.is_up_to_date(parser_path):
+            parser_path.write_text(generated_code)
 
 
 def tree_to_python_token_descriptor(
@@ -109,195 +299,3 @@ def tree_to_python_parser_expression(
             raise NotImplementedError  # pragma: nocover
 
     raise NotImplementedError  # pragma: nocover
-
-
-@dataclass
-class ParsedGrammar:
-    terminals: List[Tuple[str, Tree]]
-    non_terminals: List[Tuple[str, Tree]]
-    soft_pruned_non_terminals: Set[str]
-    non_terminal_literals: List[str]
-    pruned_terminals: Set[str]
-
-
-def load_parsed_grammar(  # noqa: C901
-    tree: Tree, tokens: List[Token], code: str
-) -> ParsedGrammar:
-
-    parsed_grammar = ParsedGrammar([], [], set(), [], set())
-
-    for grammar_item in tree.children:
-        prune = False
-        is_terminal = False
-
-        for decorator in grammar_item.children[:-1]:
-            assert decorator.token_type == NonTerminal.DECORATOR
-            decorator_value = decorator[1].value(tokens, code)
-
-            if decorator_value == "prune":
-                prune = True
-            elif decorator_value == "token":
-                is_terminal = True
-            else:  # pragma: nocover
-                raise NotImplementedError
-
-        token_definition = grammar_item[-1]
-
-        assert token_definition.token_type == NonTerminal.TOKEN_DEFINITION
-        token_name = grammar_item[-1][0].value(tokens, code)
-
-        if is_terminal:
-            terminal = (token_name, token_definition[2])
-            parsed_grammar.terminals.append(terminal)
-
-            if prune:
-                parsed_grammar.pruned_terminals.add(token_name)
-
-        else:
-            non_terminal = (token_name, token_definition[2])
-            parsed_grammar.non_terminals.append(non_terminal)
-
-            if prune:
-                parsed_grammar.soft_pruned_non_terminals.add(token_name)
-
-    return parsed_grammar
-
-
-def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
-    """
-    Reads the grammar file and generates a python parser file from it.
-    """
-
-    code = grammar_path.read_text()
-    tokens, tree = parse(str(grammar_path.absolute()), code)
-
-    assert tree.token_type == NonTerminal.ROOT
-    parsed_grammar = load_parsed_grammar(tree, tokens, code)
-
-    terminal_names = {item[0] for item in parsed_grammar.terminals}
-    non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
-
-    prefix_comments = "# ===================================== #\n"
-    prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
-    prefix_comments += "# ===================================== #\n\n"
-
-    # This turns off formatting for flake8, pycln and black
-    prefix_comments += "# flake8: noqa\n"
-    prefix_comments += "# fmt: off\n"
-    prefix_comments += "# nopycln: file\n\n"
-
-    parser_script = ""
-    parser_script += "from enum import IntEnum\n"
-    parser_script += "from itertools import count\n"
-    parser_script += "from parser.parser.models import (\n"
-    parser_script += "    ConcatenationExpression,\n"
-    parser_script += "    ConjunctionExpression,\n"
-    parser_script += "    Expression,\n"
-    parser_script += "    NonTerminalExpression,\n"
-    parser_script += "    OptionalExpression,\n"
-    parser_script += "    RepeatExpression,\n"
-    parser_script += "    TerminalExpression,\n"
-    parser_script += "    Tree,\n"
-    parser_script += ")\n"
-    parser_script += "from parser.parser.parser import Parser\n"
-    parser_script += (
-        "from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor\n"
-    )
-    parser_script += "from parser.tokenizer.tokenizer import Tokenizer\n"
-
-    parser_script += "from typing import Dict, List, Optional, Set, Tuple\n"
-    parser_script += "\n"
-
-    parser_script += "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
-    parser_script += "next_offset = count(start=1)\n"
-    parser_script += "\n\n"
-
-    parser_script += "class Terminal(IntEnum):\n"
-    for terminal_name, _ in sorted(parsed_grammar.terminals):
-        parser_script += f"    {terminal_name} = next(next_offset)\n"
-    parser_script += "\n\n"
-
-    parser_script += "TERMINAL_RULES: List[TokenDescriptor] = [\n"
-    for terminal_name, tree in parsed_grammar.terminals:
-        token_descriptor = tree_to_python_token_descriptor(
-            tree, tokens, code, terminal_name
-        )
-        parser_script += f"    {token_descriptor},\n"
-    parser_script += "]\n\n\n"
-
-    parser_script += "class NonTerminal(IntEnum):\n"
-    for non_terminal_name, _ in sorted(parsed_grammar.non_terminals):
-        parser_script += f"    {non_terminal_name} = next(next_offset)\n"
-    parser_script += "\n\n"
-
-    parser_script += "NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {\n"
-    for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
-        parser_expr = tree_to_python_parser_expression(
-            tree, tokens, code, terminal_names, non_terminal_names
-        )
-        parser_script += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
-    parser_script += "}\n\n\n"
-
-    if parsed_grammar.pruned_terminals:
-        parser_script += "PRUNED_TERMINALS: Set[IntEnum] = {\n"
-        for name in sorted(parsed_grammar.pruned_terminals):
-            parser_script += f"    Terminal.{name},\n"
-        parser_script += "}\n\n\n"
-    else:
-        parser_script += "PRUNED_TERMINALS: Set[IntEnum] = set()\n\n\n"
-
-    if parsed_grammar.soft_pruned_non_terminals:
-        parser_script += "PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
-        for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
-            parser_script += f"    NonTerminal.{non_terminal_name},\n"
-        parser_script += "}\n\n\n"
-    else:
-        parser_script += "PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
-
-    parser_script += (
-        "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
-        "    tokens: List[Token] = Tokenizer(\n"
-        "        filename=filename,\n"
-        "        code=code,\n"
-        "        terminal_rules=TERMINAL_RULES,\n"
-        "        pruned_terminals=PRUNED_TERMINALS,\n"
-        "    ).tokenize()\n"
-        "\n"
-        "    tree: Tree = Parser(\n"
-        "        filename=filename,\n"
-        "        tokens=tokens,\n"
-        "        code=code,\n"
-        "        non_terminal_rules=NON_TERMINAL_RULES,\n"
-        "        pruned_non_terminals=PRUNED_NON_TERMINALS,\n"
-        '        root_token="ROOT"\n'
-        "    ).parse()\n"
-        "\n"
-        "    return tokens, tree\n"
-    )
-
-    # format with black
-    parser_script = format_str(parser_script, mode=FileMode())
-
-    return prefix_comments + parser_script
-
-
-def check_parser_staleness(
-    generated_parser: str, parser_path: Path
-) -> bool:  # pragma: nocover
-    if not parser_path.exists():
-        return True
-
-    return parser_path.read_text() != generated_parser
-
-
-def regenerate_parser_if_stale(
-    grammar_path: Path, parser_path: Path
-) -> None:  # pragma: nocover
-    try:
-        generated_parser = generate_parser(grammar_path)
-    except BaseParseError as e:
-        print(e.args[0], file=sys.stderr)
-        exit(1)
-
-    if check_parser_staleness(generated_parser, parser_path):
-        parser_path.write_text(generated_parser)

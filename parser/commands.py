@@ -1,9 +1,5 @@
 import sys
-from parser.parser_generator import (
-    check_parser_staleness,
-    generate_parser,
-    regenerate_parser_if_stale,
-)
+from parser.parser_generator import ParserGenerator
 from pathlib import Path
 
 
@@ -15,7 +11,7 @@ def generate_parser_command() -> None:
     grammar_path = Path(sys.argv[1])
     parser_path = Path(sys.argv[2])
 
-    regenerate_parser_if_stale(grammar_path, parser_path)
+    ParserGenerator(grammar_path).write_if_stale(parser_path)
 
 
 def check_parser_staleness_command() -> None:
@@ -26,7 +22,5 @@ def check_parser_staleness_command() -> None:
     grammar_path = Path(sys.argv[1])
     parser_path = Path(sys.argv[2])
 
-    generated_parser = generate_parser(grammar_path)
-
-    if check_parser_staleness(generated_parser, parser_path):
+    if not ParserGenerator(grammar_path).is_up_to_date(parser_path):
         exit(1)

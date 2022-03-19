@@ -204,10 +204,6 @@ def prune_by_token_types(
     if not tree:
         return None
 
-    return _prune_by_token_types_soft(tree, token_types)
-
-
-def _prune_by_token_types_soft(tree: Tree, token_types: Set[IntEnum]) -> Optional[Tree]:
     def get_descendants_without_token_types(
         tree: Tree, token_types: Set[IntEnum]
     ) -> List[Tree]:

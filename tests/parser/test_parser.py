@@ -54,8 +54,7 @@ def test_parser_repeat() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -99,8 +98,7 @@ def test_parser_conjunction_fail() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -130,8 +128,7 @@ def test_parser_conjunction() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -170,8 +167,7 @@ def test_parser_concatenation() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -209,8 +205,7 @@ def test_parser_terminal() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -238,8 +233,7 @@ def test_parser_non_terminal() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -272,8 +266,7 @@ def test_parser_optinal() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -309,8 +302,7 @@ def test_parser_optinal_fail() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -346,8 +338,7 @@ def test_parser_code_longer_than_root_expects() -> None:
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -370,8 +361,7 @@ def test_parser_check_non_terminal_rules_missing() -> None:
         tokens=[],
         code="",
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -396,8 +386,7 @@ def test_parser_check_non_terminal_rules_unexpected() -> None:
         tokens=[],
         code="",
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 
@@ -420,8 +409,7 @@ def test_parser_check_non_terminal_rules_without_root() -> None:
         tokens=[],
         code="",
         non_terminal_rules=non_terminal_rules,
-        prune_soft_tokens=set(),
-        prune_hard_tokens=set(),
+        pruned_non_terminals=set(),
         root_token="ROOT",
     )
 

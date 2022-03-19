@@ -41,6 +41,7 @@ def test_parser_repeat() -> None:
     }
 
     parser = Parser(
+        filename="",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -85,6 +86,7 @@ def test_parser_conjunction() -> None:
     }
 
     parser = Parser(
+        filename="",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -124,6 +126,7 @@ def test_parser_concatenation() -> None:
     }
 
     parser = Parser(
+        filename="",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -162,6 +165,7 @@ def test_parser_terminal() -> None:
     }
 
     parser = Parser(
+        filename="",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -190,6 +194,7 @@ def test_parser_non_terminal() -> None:
     }
 
     parser = Parser(
+        filename="",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,

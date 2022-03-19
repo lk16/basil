@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass
-from parser.exceptions import ParseError
+from parser.exceptions import BaseParseError
 from parser.grammar.parser import NonTerminal, Terminal, parse
 from parser.parser.models import Tree
 from parser.tokenizer.models import Token
@@ -178,7 +178,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     """
 
     code = grammar_path.read_text()
-    tokens, tree = parse(code)
+    tokens, tree = parse(str(grammar_path.absolute()), code)
 
     assert tree.token_type == NonTerminal.ROOT
     parsed_grammar = load_parsed_grammar(tree, tokens, code)
@@ -271,12 +271,21 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     else:
         parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
-    parser_script += "def parse(code: str) -> Tuple[List[Token], Tree]:\n"
-    parser_script += "    tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
-
-    parser_script += '    tree: Tree = Parser(tokens=tokens, code=code, non_terminal_rules=NON_TERMINAL_RULES, prune_hard_tokens=HARD_PRUNED_NON_TERMINALS, prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS, root_token="ROOT").parse()\n'
-
-    parser_script += "    return tokens, tree\n"
+    parser_script += (
+        "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
+        "    tokens: List[Token] = Tokenizer(filename, code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()\n"
+        + "    tree: Tree = Parser(\n"
+        + "        filename=filename,\n"
+        + "        tokens=tokens,\n"
+        + "        code=code,\n"
+        + "        non_terminal_rules=NON_TERMINAL_RULES,\n"
+        + "        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,\n"
+        + "        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,\n"
+        + '        root_token="ROOT"\n'
+        + "    ).parse()\n"
+        + "\n"
+        + "    return tokens, tree\n"
+    )
 
     # format with black
     parser_script = format_str(parser_script, mode=FileMode())
@@ -298,7 +307,7 @@ def regenerate_parser_if_stale(
 ) -> None:  # pragma: nocover
     try:
         generated_parser = generate_parser(grammar_path)
-    except ParseError as e:
+    except BaseParseError as e:
         print(e.args[0], file=sys.stderr)
         exit(1)
 

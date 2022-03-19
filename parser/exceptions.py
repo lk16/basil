@@ -32,39 +32,3 @@ class BaseParseError(Exception):
 
     def what(self) -> str:  # pragma: nocover
         return ""
-
-
-# TODO move to parser/parser/exceptions.py
-class ParseError(BaseParseError):
-    def __init__(self, filename: str, code: str, offset: int) -> None:
-        super().__init__(filename, code, offset)
-        # TODO send expected_token_type as argument here?
-
-    def what(self) -> str:
-        line_num, col_num = self.get_line_column_numbers()
-        line = self.get_line()
-
-        return (
-            f"Parse error at {self.filename}:{line_num}:{col_num}\n"
-            + f"{line}\n"
-            + " " * (col_num - 1)
-            + "^"
-        )
-
-
-# TODO move to parser/tokenizer/exceptions.py
-class TokenizerError(BaseParseError):
-    def __init__(self, filename: str, code: str, offset: int) -> None:
-        super().__init__(filename, code, offset)
-        # TODO send expected_token_types as argument here?
-
-    def what(self) -> str:
-        line_num, col_num = self.get_line_column_numbers()
-        line = self.get_line()
-
-        return (
-            f"Tokenize error at {self.filename}:{line_num}:{col_num}\n"
-            + f"{line}\n"
-            + " " * (col_num - 1)
-            + "^"
-        )

@@ -1,6 +1,9 @@
 from enum import IntEnum
-from parser.exceptions import InternalParseError
-from parser.tokenizer.exceptions import MissingTerminalTypes, UnexpectedTerminalTypes
+from parser.tokenizer.exceptions import (
+    MissingTerminalTypes,
+    TokenizerError,
+    UnexpectedTerminalTypes,
+)
 from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor
 from typing import List, Optional, Set
 
@@ -8,11 +11,13 @@ from typing import List, Optional, Set
 class Tokenizer:
     def __init__(
         self,
+        filename: str,
         code: str,
         terminal_rules: List[TokenDescriptor],
         pruned_terminals: Set[IntEnum],
     ) -> None:
         self.code = code
+        self.filename = filename
         self.terminal_rules = terminal_rules
         self.pruned_terminals = pruned_terminals
 
@@ -58,7 +63,7 @@ class Tokenizer:
 
             if not token_match:
                 # TODO use internal tokenize error
-                raise InternalParseError(offset, None)
+                raise TokenizerError(self.filename, self.code, offset)
 
         return tokens
 

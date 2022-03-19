@@ -166,9 +166,10 @@ SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
 }
 
 
-def parse(code: str) -> Tuple[List[Token], Tree]:
-    tokens: List[Token] = Tokenizer(code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
+def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
+    tokens: List[Token] = Tokenizer(filename, code, TERMINAL_RULES, PRUNED_TERMINALS).tokenize()
     tree: Tree = Parser(
+        filename=filename,
         tokens=tokens,
         code=code,
         non_terminal_rules=NON_TERMINAL_RULES,

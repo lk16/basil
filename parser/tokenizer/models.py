@@ -9,7 +9,8 @@ class Token:
     offset: int
     length: int
 
-    def value(self, code: str) -> str:
+    def value(self, code: str) -> str:  # pragma: nocover
+        # For debugging
         return code[self.offset : self.offset + self.length]
 
 

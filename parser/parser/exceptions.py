@@ -1,9 +1,9 @@
 from enum import IntEnum
-from parser.exceptions import BaseParseError
+from parser.exceptions import BaseParseError, BaseParserException
 from typing import Set
 
 
-class MissingNonTerminalTypes(Exception):
+class MissingNonTerminalTypes(BaseParserException):
     def __init__(self, missing_types: Set[IntEnum]) -> None:
         super().__init__(
             f"NonTerminal rewrite rules has {len(missing_types)} missing types: "
@@ -11,7 +11,7 @@ class MissingNonTerminalTypes(Exception):
         )
 
 
-class UnexpectedNonTerminalTypes(Exception):
+class UnexpectedNonTerminalTypes(BaseParserException):
     def __init__(self, unexpected_types: Set[IntEnum]) -> None:
         super().__init__(
             f"NonTerminal rewrite rules contain {len(unexpected_types)} unexpected types: "
@@ -19,7 +19,7 @@ class UnexpectedNonTerminalTypes(Exception):
         )
 
 
-class MissingRootNonTerminalType(Exception):
+class MissingRootNonTerminalType(BaseParserException):
     def __init__(self) -> None:
         super().__init__(f"NonTerminal rewrite rules does not have a ROOT item")
 

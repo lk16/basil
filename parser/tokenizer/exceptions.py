@@ -1,9 +1,9 @@
 from enum import IntEnum
-from parser.exceptions import BaseParseError
+from parser.exceptions import BaseParseError, BaseParserException
 from typing import Set
 
 
-class MissingTerminalTypes(Exception):
+class MissingTerminalTypes(BaseParserException):
     def __init__(self, missing_types: Set[IntEnum]) -> None:
         super().__init__(
             f"Terminal rewrite rules has {len(missing_types)} missing types: "
@@ -11,7 +11,7 @@ class MissingTerminalTypes(Exception):
         )
 
 
-class UnexpectedTerminalTypes(Exception):
+class UnexpectedTerminalTypes(BaseParserException):
     def __init__(self, unexpected_types: Set[IntEnum]) -> None:
         super().__init__(
             f"Terminal rewrite rules contain {len(unexpected_types)} unexpected types: "

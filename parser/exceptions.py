@@ -1,7 +1,13 @@
 from typing import Tuple
 
 
-class BaseParseError(Exception):
+class BaseParserException(Exception):
+    def __eq__(self, o: object) -> bool:
+        # Faclitate testing
+        return type(o) == type(self) and vars(o) == vars(self)
+
+
+class BaseParseError(BaseParserException):
     def __init__(self, filename: str, code: str, offset: int) -> None:
         self.filename = filename
         self.code = code
@@ -27,7 +33,3 @@ class BaseParseError(Exception):
     def what(self) -> str:  # pragma: nocover
         # should be overridden by subclasses
         return "Don't use BaseParseError directly!"
-
-    def __eq__(self, o: object) -> bool:
-        # Faclitate testing
-        return type(o) == type(self) and vars(o) == vars(self)

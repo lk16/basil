@@ -1,5 +1,10 @@
 from enum import IntEnum, auto
-from parser.parser.exceptions import ParseError
+from parser.parser.exceptions import (
+    MissingNonTerminalTypes,
+    MissingRootNonTerminalType,
+    ParseError,
+    UnexpectedNonTerminalTypes,
+)
 from parser.parser.models import (
     ConcatenationExpression,
     ConjunctionExpression,
@@ -258,9 +263,7 @@ def test_parser_optinal() -> None:
     code = "a"
 
     non_terminal_rules: Dict[IntEnum, Expression] = {
-        DummyNonTerminal.ROOT: ConcatenationExpression(
-            OptionalExpression(TerminalExpression(DummyTerminal.A)),
-        ),
+        DummyNonTerminal.ROOT: OptionalExpression(TerminalExpression(DummyTerminal.A)),
         DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
     }
 
@@ -282,6 +285,43 @@ def test_parser_optinal() -> None:
         token_type=DummyNonTerminal.ROOT,
         children=[
             Tree(token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[])
+        ],
+    )
+
+
+def test_parser_optinal_fail() -> None:
+    tokens = [
+        Token(DummyTerminal.B, 0, 1),
+    ]
+
+    code = "b"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            OptionalExpression(TerminalExpression(DummyTerminal.A)),
+            TerminalExpression(DummyTerminal.B),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_offset=0,
+        token_count=1,
+        token_type=DummyNonTerminal.ROOT,
+        children=[
+            Tree(token_offset=0, token_count=1, token_type=DummyTerminal.B, children=[])
         ],
     )
 
@@ -315,6 +355,78 @@ def test_parser_code_longer_than_root_expects() -> None:
         parser.parse()
 
     assert e.value == ParseError("foo.txt", code, 1)
+
+
+def test_parser_check_non_terminal_rules_missing() -> None:
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+        ),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=[],
+        code="",
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(MissingNonTerminalTypes) as e:
+        parser.parse()
+
+    assert e.value == MissingNonTerminalTypes({DummyNonTerminal.FOO})
+
+
+def test_parser_check_non_terminal_rules_unexpected() -> None:
+    class ExtraNonTerminals(IntEnum):
+        BAR = 99
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: TerminalExpression(DummyTerminal.A),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+        ExtraNonTerminals.BAR: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=[],
+        code="",
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(UnexpectedNonTerminalTypes) as e:
+        parser.parse()
+
+    assert e.value == UnexpectedNonTerminalTypes({ExtraNonTerminals.BAR})
+
+
+def test_parser_check_non_terminal_rules_without_root() -> None:
+    class NonTerminalsWithoutRoot(IntEnum):
+        BAZ = 100
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        NonTerminalsWithoutRoot.BAZ: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=[],
+        code="",
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(MissingRootNonTerminalType):
+        parser.parse()
 
 
 # TODO test file longer than ROOT expects

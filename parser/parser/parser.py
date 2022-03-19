@@ -196,14 +196,14 @@ class Parser:
         unexpected_keys = self.non_terminal_rules.keys() - set(tokens_enum)
         missing_keys: Set[IntEnum] = set(tokens_enum) - self.non_terminal_rules.keys()
 
+        if "ROOT" not in tokens_enum.__members__:
+            raise MissingRootNonTerminalType
+
         if missing_keys:
             raise MissingNonTerminalTypes(missing_keys)
 
         if unexpected_keys:
             raise UnexpectedNonTerminalTypes(unexpected_keys)
-
-        if "ROOT" not in tokens_enum.__members__:
-            raise MissingRootNonTerminalType
 
 
 def prune_by_token_types(

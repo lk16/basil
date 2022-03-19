@@ -1,7 +1,7 @@
 from parser.parser.exceptions import ParseError
 
 
-class UnhandledTokenException(ParseError):
+class UnknownTokenException(ParseError):
     def __init__(self, filename: str, code: str, offset: int, token_name: str) -> None:
         super().__init__(filename, code, offset)
         self.token_name = token_name

@@ -1,31 +1,14 @@
 import sys
-from dataclasses import dataclass
 from parser.exceptions import BaseParseError
 from parser.grammar.parser import NonTerminal, Terminal
 from parser.grammar.parser import parse as parse_grammar
 from parser.parser.models import Tree
-from parser.parser_generator.exceptions import UnhandledTokenException
+from parser.parser_generator.exceptions import UnknownTokenException
+from parser.parser_generator.models import ParsedGrammar
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 from black import FileMode, format_str
-
-
-@dataclass
-class ParsedGrammar:
-    terminals: List[Tuple[str, Tree]]
-    non_terminals: List[Tuple[str, Tree]]  # TODO should this be a Dict?
-    pruned_terminals: Set[str]
-    pruned_non_terminals: Set[str]
-
-    @classmethod
-    def empty(cls) -> "ParsedGrammar":
-        return ParsedGrammar(
-            terminals=[],
-            non_terminals=[],
-            pruned_terminals=set(),
-            pruned_non_terminals=set(),
-        )
 
 
 class ParserGenerator:
@@ -197,7 +180,7 @@ class ParserGenerator:
         try:
             generated_code = self._generate_parser_code()
         except BaseParseError as e:
-            print(e.args[0], file=sys.stderr)
+            print(e.what(), file=sys.stderr)
             exit(1)
 
         if not self.is_up_to_date(parser_path):
@@ -306,9 +289,8 @@ class ParserGenerator:
                     + ")"
                 )
             else:
-                # TODO handle unknown Terminal or NonTerminal
                 code_offset = self.tokens[tree.token_offset].offset
-                raise UnhandledTokenException(
+                raise UnknownTokenException(
                     str(self.grammar_path), self.code, code_offset, token_name
                 )
 

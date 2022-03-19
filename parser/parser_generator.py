@@ -79,38 +79,41 @@ class ParserGenerator:
         terminal_names = {item[0] for item in parsed_grammar.terminals}
         non_terminal_names = {item[0] for item in parsed_grammar.non_terminals}
 
-        prefix_comments = "# ===================================== #\n"
-        prefix_comments += "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
-        prefix_comments += "# ===================================== #\n\n"
+        prefix_comments = (
+            "# ===================================== #\n"
+            "# THIS FILE WAS GENERATED, DO NOT EDIT! #\n"
+            "# ===================================== #\n"
+            "\n"
+            "# This turns off formatting for flake8, pycln and black\n"
+            "# flake8: noqa\n"
+            "# fmt: off\n"
+            "# nopycln: file\n"
+            "\n"
+        )
 
-        # This turns off formatting for flake8, pycln and black
-        prefix_comments += "# flake8: noqa\n"
-        prefix_comments += "# fmt: off\n"
-        prefix_comments += "# nopycln: file\n\n"
-
-        parser_code = ""
-        parser_code += "from enum import IntEnum\n"
-        parser_code += "from itertools import count\n"
-        parser_code += "from parser.parser.models import (\n"
-        parser_code += "    ConcatenationExpression,\n"
-        parser_code += "    ConjunctionExpression,\n"
-        parser_code += "    Expression,\n"
-        parser_code += "    NonTerminalExpression,\n"
-        parser_code += "    OptionalExpression,\n"
-        parser_code += "    RepeatExpression,\n"
-        parser_code += "    TerminalExpression,\n"
-        parser_code += "    Tree,\n"
-        parser_code += ")\n"
-        parser_code += "from parser.parser.parser import Parser\n"
-        parser_code += "from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor\n"
-        parser_code += "from parser.tokenizer.tokenizer import Tokenizer\n"
-
-        parser_code += "from typing import Dict, List, Optional, Set, Tuple\n"
-        parser_code += "\n"
-
-        parser_code += "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
-        parser_code += "next_offset = count(start=1)\n"
-        parser_code += "\n\n"
+        parser_code = (
+            "from enum import IntEnum\n"
+            "from itertools import count\n"
+            "from parser.parser.models import (\n"
+            "    ConcatenationExpression,\n"
+            "    ConjunctionExpression,\n"
+            "    Expression,\n"
+            "    NonTerminalExpression,\n"
+            "    OptionalExpression,\n"
+            "    RepeatExpression,\n"
+            "    TerminalExpression,\n"
+            "    Tree,\n"
+            ")\n"
+            "from parser.parser.parser import Parser\n"
+            "from parser.tokenizer.models import Literal, Regex, Token, TokenDescriptor\n"
+            "from parser.tokenizer.tokenizer import Tokenizer\n"
+            "from typing import Dict, List, Optional, Set, Tuple\n"
+            "\n"
+            "# We can't use enum.auto, since Terminal and NonTerminal will have colliding values\n"
+            "next_offset = count(start=1)\n"
+            "\n"
+            "\n"
+        )
 
         parser_code += "class Terminal(IntEnum):\n"
         for terminal_name, _ in sorted(parsed_grammar.terminals):
@@ -119,7 +122,7 @@ class ParserGenerator:
 
         parser_code += "TERMINAL_RULES: List[TokenDescriptor] = [\n"
         for terminal_name, tree in parsed_grammar.terminals:
-            token_descriptor = tree_to_python_token_descriptor(
+            token_descriptor = _tree_to_token_descriptor_code(
                 tree, self.tokens, self.code, terminal_name
             )
             parser_code += f"    {token_descriptor},\n"
@@ -132,7 +135,7 @@ class ParserGenerator:
 
         parser_code += "NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {\n"
         for non_terminal_name, tree in sorted(parsed_grammar.non_terminals):
-            parser_expr = tree_to_python_parser_expression(
+            parser_expr = _tree_to_expression_code(
                 tree, self.tokens, self.code, terminal_names, non_terminal_names
             )
             parser_code += f"    NonTerminal.{non_terminal_name}: {parser_expr},\n"
@@ -200,7 +203,7 @@ class ParserGenerator:
             parser_path.write_text(generated_code)
 
 
-def tree_to_python_token_descriptor(
+def _tree_to_token_descriptor_code(
     tree: Tree,
     tokens: List[Token],
     code: str,
@@ -218,7 +221,7 @@ def tree_to_python_token_descriptor(
         raise NotImplementedError
 
 
-def tree_to_python_parser_expression(
+def _tree_to_expression_code(
     tree: Tree,
     tokens: List[Token],
     code: str,
@@ -227,7 +230,7 @@ def tree_to_python_parser_expression(
 ) -> str:
     if tree.token_type == NonTerminal.BRACKET_EXPRESSION:
         bracket_end = tree[2].value(tokens, code)
-        child_expr = tree_to_python_parser_expression(
+        child_expr = _tree_to_expression_code(
             tree[1], tokens, code, terminal_names, non_terminal_names
         )
 
@@ -258,7 +261,7 @@ def tree_to_python_parser_expression(
         return (
             "ConcatenationExpression("
             + ", ".join(
-                tree_to_python_parser_expression(
+                _tree_to_expression_code(
                     concat_item, tokens, code, terminal_names, non_terminal_names
                 )
                 for concat_item in conjunc_items
@@ -280,7 +283,7 @@ def tree_to_python_parser_expression(
         return (
             "ConjunctionExpression("
             + ", ".join(
-                tree_to_python_parser_expression(
+                _tree_to_expression_code(
                     conjunc_item, tokens, code, terminal_names, non_terminal_names
                 )
                 for conjunc_item in conjunc_items

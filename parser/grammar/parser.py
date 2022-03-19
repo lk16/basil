@@ -2,6 +2,7 @@
 # THIS FILE WAS GENERATED, DO NOT EDIT! #
 # ===================================== #
 
+# This turns off formatting for flake8, pycln and black
 # flake8: noqa
 # fmt: off
 # nopycln: file

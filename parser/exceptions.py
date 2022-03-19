@@ -6,13 +6,7 @@ class BaseParseError(Exception):
         self.filename = filename
         self.code = code
         self.offset = offset
-
-        if type(self) == BaseParseError:  # pragma: nocover
-            what = "Don't use BaseParseError directly!"
-        else:
-            what = self.what()
-
-        super().__init__(what)
+        super().__init__(self.what())
 
     def get_line_column_numbers(self) -> Tuple[int, int]:
         before_offset = self.code[: self.offset]
@@ -31,4 +25,9 @@ class BaseParseError(Exception):
         return self.code[prev_newline + 1 : next_newline]
 
     def what(self) -> str:  # pragma: nocover
-        return ""
+        # should be overridden by subclasses
+        return "Don't use BaseParseError directly!"
+
+    def __eq__(self, o: object) -> bool:
+        # Faclitate testing
+        return type(o) == type(self) and vars(o) == vars(self)

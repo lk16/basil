@@ -46,7 +46,9 @@ def tree_to_python_parser_expression(
         elif bracket_end == ")*":
             return f"RepeatExpression({child_expr})"
         elif bracket_end == ")+":
-            return f"RepeatExpression({child_expr}, min_repeats=1)"
+            return (
+                f"ConcatenationExpression({child_expr}, RepeatExpression({child_expr}))"
+            )
         elif bracket_end == ")?":
             return f"OptionalExpression({child_expr})"
         else:  # pragma: nocover

@@ -101,8 +101,11 @@ NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
             NonTerminalExpression(NonTerminal.CONJUNCTION_EXPRESSION),
             NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION),
         ),
-        RepeatExpression(
-            NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION), min_repeats=1
+        ConcatenationExpression(
+            NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
+            RepeatExpression(
+                NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION)
+            ),
         ),
     ),
     NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationExpression(

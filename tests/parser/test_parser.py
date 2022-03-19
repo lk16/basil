@@ -1,9 +1,11 @@
 from enum import IntEnum, auto
+from parser.parser.exceptions import ParseError
 from parser.parser.models import (
     ConcatenationExpression,
     ConjunctionExpression,
     Expression,
     NonTerminalExpression,
+    OptionalExpression,
     RepeatExpression,
     TerminalExpression,
     Tree,
@@ -11,6 +13,8 @@ from parser.parser.models import (
 from parser.parser.parser import Parser
 from parser.tokenizer.models import Token
 from typing import Dict
+
+import pytest
 
 
 class DummyTerminal(IntEnum):
@@ -41,7 +45,7 @@ def test_parser_repeat() -> None:
     }
 
     parser = Parser(
-        filename="",
+        filename="foo.txt",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -70,12 +74,12 @@ def test_parser_repeat() -> None:
     )
 
 
-def test_parser_conjunction() -> None:
+def test_parser_conjunction_fail() -> None:
     tokens = [
-        Token(DummyTerminal.A, 0, 1),
+        Token(DummyTerminal.C, 0, 1),
     ]
 
-    code = "abc"
+    code = "c"
 
     non_terminal_rules: Dict[IntEnum, Expression] = {
         DummyNonTerminal.ROOT: ConjunctionExpression(
@@ -86,7 +90,38 @@ def test_parser_conjunction() -> None:
     }
 
     parser = Parser(
-        filename="",
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(ParseError) as e:
+        parser.parse()
+
+    assert e.value == ParseError("foo.txt", code, 0)
+
+
+def test_parser_conjunction() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+    ]
+
+    code = "a"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConjunctionExpression(
+            TerminalExpression(DummyTerminal.A),
+            TerminalExpression(DummyTerminal.B),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -126,7 +161,7 @@ def test_parser_concatenation() -> None:
     }
 
     parser = Parser(
-        filename="",
+        filename="foo.txt",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -165,7 +200,7 @@ def test_parser_terminal() -> None:
     }
 
     parser = Parser(
-        filename="",
+        filename="foo.txt",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -194,7 +229,7 @@ def test_parser_non_terminal() -> None:
     }
 
     parser = Parser(
-        filename="",
+        filename="foo.txt",
         tokens=tokens,
         code=code,
         non_terminal_rules=non_terminal_rules,
@@ -213,6 +248,73 @@ def test_parser_non_terminal() -> None:
             Tree(token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[])
         ],
     )
+
+
+def test_parser_optinal() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+    ]
+
+    code = "a"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            OptionalExpression(TerminalExpression(DummyTerminal.A)),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_offset=0,
+        token_count=1,
+        token_type=DummyNonTerminal.ROOT,
+        children=[
+            Tree(token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[])
+        ],
+    )
+
+
+def test_parser_code_longer_than_root_expects() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+        Token(DummyTerminal.A, 1, 1),
+    ]
+
+    code = "aa"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        prune_soft_tokens=set(),
+        prune_hard_tokens=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(ParseError) as e:
+        parser.parse()
+
+    assert e.value == ParseError("foo.txt", code, 1)
 
 
 # TODO test file longer than ROOT expects

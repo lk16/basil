@@ -20,7 +20,6 @@ class ConjunctionExpression(Expression):
 @dataclass
 class RepeatExpression(Expression):
     child: Expression
-    min_repeats: int = 0
 
 
 @dataclass

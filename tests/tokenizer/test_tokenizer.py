@@ -114,9 +114,7 @@ def test_tokenize_fail() -> None:
             pruned_terminals=set(),
         ).tokenize()
 
-    assert e.value.filename == "foo.txt"
-    assert e.value.code == code
-    assert e.value.offset == 5
+    assert e.value == TokenizerError("foo.txt", code, 5)
 
 
 def test_tokenize_regex_fail() -> None:

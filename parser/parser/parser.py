@@ -53,9 +53,9 @@ class Parser:
         tree.token_type = root_non_terminal
 
         if tree.token_count != len(self.tokens):
-            last_token = self.tokens[tree.token_count - 1]
-            last_token_end = last_token.offset + last_token.length
-            raise ParseError(self.filename, self.code, last_token_end + 1)
+            assert tree.token_count < len(self.tokens)
+            first_unexpected_token = self.tokens[tree.token_count]
+            raise ParseError(self.filename, self.code, first_unexpected_token.offset)
 
         empty_tree = Tree(0, 0, root_non_terminal, [])
 
@@ -128,9 +128,6 @@ class Parser:
             else:
                 children.append(parsed)
                 child_offset += parsed.token_count
-
-        if len(children) < expr.min_repeats:
-            raise ParseError(self.filename, self.code, offset)
 
         return Tree(
             offset,

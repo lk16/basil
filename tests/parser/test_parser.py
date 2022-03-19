@@ -417,6 +417,51 @@ def test_parser_check_non_terminal_rules_without_root() -> None:
         parser.parse()
 
 
+def test_parser_pruning_non_terminals() -> None:
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+            NonTerminalExpression(DummyNonTerminal.FOO),
+            TerminalExpression(DummyTerminal.A),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.B),
+    }
+
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+        Token(DummyTerminal.B, 1, 1),
+        Token(DummyTerminal.A, 2, 1),
+    ]
+
+    code = "aba"
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals={DummyNonTerminal.FOO},
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_offset=0,
+        token_count=3,
+        token_type=DummyNonTerminal.ROOT,
+        children=[
+            Tree(
+                token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[]
+            ),
+            Tree(
+                token_offset=2, token_count=1, token_type=DummyTerminal.A, children=[]
+            ),
+        ],
+    )
+
+
 # TODO test file longer than ROOT expects
 
 # TODO test empty file fail

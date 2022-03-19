@@ -115,7 +115,6 @@ def tree_to_python_parser_expression(
 class ParsedGrammar:
     terminals: List[Tuple[str, Tree]]
     non_terminals: List[Tuple[str, Tree]]
-    hard_pruned_non_terminals: Set[str]
     soft_pruned_non_terminals: Set[str]
     non_terminal_literals: List[str]
     pruned_terminals: Set[str]
@@ -125,7 +124,7 @@ def load_parsed_grammar(  # noqa: C901
     tree: Tree, tokens: List[Token], code: str
 ) -> ParsedGrammar:
 
-    parsed_grammar = ParsedGrammar([], [], set(), set(), [], set())
+    parsed_grammar = ParsedGrammar([], [], set(), [], set())
 
     for grammar_item in tree.children:
         prune = False
@@ -247,21 +246,13 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
     else:
         parser_script += "PRUNED_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
-    if parsed_grammar.hard_pruned_non_terminals:
-        parser_script += "HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
-        for non_terminal_name in sorted(parsed_grammar.hard_pruned_non_terminals):
-            parser_script += f"    NonTerminal.{non_terminal_name},\n"
-        parser_script += "}\n\n\n"
-    else:
-        parser_script += "HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
-
     if parsed_grammar.soft_pruned_non_terminals:
-        parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
+        parser_script += "PRUNED_NON_TERMINALS: Set[IntEnum] = {\n"
         for non_terminal_name in sorted(parsed_grammar.soft_pruned_non_terminals):
             parser_script += f"    NonTerminal.{non_terminal_name},\n"
         parser_script += "}\n\n\n"
     else:
-        parser_script += "SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
+        parser_script += "PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
     parser_script += (
         "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
@@ -277,8 +268,7 @@ def generate_parser(grammar_path: Path) -> str:  # pragma: nocover
         "        tokens=tokens,\n"
         "        code=code,\n"
         "        non_terminal_rules=NON_TERMINAL_RULES,\n"
-        "        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,\n"
-        "        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,\n"
+        "        pruned_non_terminals=PRUNED_NON_TERMINALS,\n"
         '        root_token="ROOT"\n'
         "    ).parse()\n"
         "\n"

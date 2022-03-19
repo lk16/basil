@@ -30,16 +30,14 @@ class Parser:
         code: str,
         tokens: List[Token],
         non_terminal_rules: Dict[IntEnum, Expression],
-        prune_hard_tokens: Set[IntEnum],
-        prune_soft_tokens: Set[IntEnum],
+        pruned_non_terminals: Set[IntEnum],
         root_token: str = "ROOT",
     ) -> None:
         self.filename = filename
         self.code = code
         self.tokens = tokens
         self.non_terminal_rules = non_terminal_rules
-        self.prune_hard_tokens = prune_hard_tokens
-        self.prune_soft_tokens = prune_soft_tokens
+        self.pruned_non_terminals = pruned_non_terminals
         self.root_token = root_token
 
     def parse(self) -> Tree:
@@ -62,13 +60,7 @@ class Parser:
         pruned_tree = prune_no_token_type(tree) or empty_tree
 
         pruned_tree = (
-            prune_by_token_types(pruned_tree, self.prune_hard_tokens, prune_hard=True)
-            or empty_tree
-        )
-
-        pruned_tree = (
-            prune_by_token_types(pruned_tree, self.prune_soft_tokens, prune_hard=False)
-            or empty_tree
+            prune_by_token_types(pruned_tree, self.pruned_non_terminals) or empty_tree
         )
 
         return pruned_tree
@@ -207,22 +199,12 @@ class Parser:
 
 
 def prune_by_token_types(
-    tree: Optional[Tree], token_types: Set[IntEnum], *, prune_hard: bool
+    tree: Optional[Tree], token_types: Set[IntEnum]
 ) -> Optional[Tree]:
     if not tree:
         return None
 
-    if prune_hard:
-        return _prune_by_token_types_hard(tree, token_types)
-
     return _prune_by_token_types_soft(tree, token_types)
-
-
-def _prune_by_token_types_hard(tree: Tree, token_types: Set[IntEnum]) -> Optional[Tree]:
-    def prune_condition(tree: Tree) -> bool:
-        return tree.token_type in token_types
-
-    return prune_tree(tree, prune_condition)
 
 
 def _prune_by_token_types_soft(tree: Tree, token_types: Set[IntEnum]) -> Optional[Tree]:

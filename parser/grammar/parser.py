@@ -157,10 +157,7 @@ PRUNED_TERMINALS: Set[IntEnum] = {
 }
 
 
-HARD_PRUNED_NON_TERMINALS: Set[IntEnum] = set()
-
-
-SOFT_PRUNED_NON_TERMINALS: Set[IntEnum] = {
+PRUNED_NON_TERMINALS: Set[IntEnum] = {
     NonTerminal.TOKEN_COMPOUND_EXPRESSION,
     NonTerminal.TOKEN_EXPRESSION,
 }
@@ -179,8 +176,7 @@ def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
         tokens=tokens,
         code=code,
         non_terminal_rules=NON_TERMINAL_RULES,
-        prune_hard_tokens=HARD_PRUNED_NON_TERMINALS,
-        prune_soft_tokens=SOFT_PRUNED_NON_TERMINALS,
+        pruned_non_terminals=PRUNED_NON_TERMINALS,
         root_token="ROOT",
     ).parse()
 

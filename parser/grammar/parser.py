@@ -1,6 +1,6 @@
-# ===================================== #
-# THIS FILE WAS GENERATED, DO NOT EDIT! #
-# ===================================== #
+# ================================================================= #
+#        THIS FILE WAS AUTOMATICALLY GENERATED, DO NOT EDIT!        #
+# ================================================================= #
 
 # This turns off formatting for flake8, pycln and black
 # flake8: noqa
@@ -165,6 +165,7 @@ PRUNED_NON_TERMINALS: Set[IntEnum] = {
 
 
 def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
+
     tokens: List[Token] = Tokenizer(
         filename=filename,
         code=code,

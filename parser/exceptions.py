@@ -1,13 +1,12 @@
 from typing import Tuple
 
 
-class BaseParserException(Exception):
+class EqualitySupportingException(Exception):
     def __eq__(self, o: object) -> bool:
-        # Faclitate testing
         return type(o) == type(self) and vars(o) == vars(self)
 
 
-class BaseParseError(BaseParserException):
+class BaseParseError(EqualitySupportingException):
     def __init__(self, filename: str, code: str, offset: int) -> None:
         self.filename = filename
         self.code = code

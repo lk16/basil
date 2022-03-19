@@ -1,4 +1,4 @@
-from parser.parser_generator import ParserGenerator
+from parser.parser_generator.parser_generator import ParserGenerator
 from pathlib import Path
 
 

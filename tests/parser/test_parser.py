@@ -462,6 +462,82 @@ def test_parser_pruning_non_terminals() -> None:
     )
 
 
+def test_parser_at_least_once_at_end_of_input() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+    ]
+
+    code = "a"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+            RepeatExpression(TerminalExpression(DummyTerminal.A)),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_type=DummyNonTerminal.ROOT,
+        token_offset=0,
+        token_count=1,
+        children=[
+            Tree(
+                token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[]
+            ),
+        ],
+    )
+
+
+def test_parser_optional_at_end_of_input() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+    ]
+
+    code = "a"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+            OptionalExpression(TerminalExpression(DummyTerminal.A)),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_type=DummyNonTerminal.ROOT,
+        token_offset=0,
+        token_count=1,
+        children=[
+            Tree(
+                token_offset=0, token_count=1, token_type=DummyTerminal.A, children=[]
+            ),
+        ],
+    )
+
+
 # TODO test file longer than ROOT expects
 
 # TODO test empty file fail

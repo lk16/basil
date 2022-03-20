@@ -66,8 +66,12 @@ class Parser:
         return pruned_tree
 
     def _parse(self, expr: Expression, offset: int) -> Tree:
-
         if offset >= len(self.tokens):
+
+            if isinstance(expr, (RepeatExpression, OptionalExpression)):
+                # No more tokens available, but we don't need any
+                return Tree(offset, 0, None, [])
+
             raise ParseError(self.filename, self.code, offset)
 
         parse_funcs = {

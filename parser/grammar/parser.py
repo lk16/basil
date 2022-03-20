@@ -96,19 +96,17 @@ NON_TERMINAL_RULES: Dict[IntEnum, Expression] = {
     ),
     NonTerminal.CONCATENATION_EXPRESSION: ConcatenationExpression(
         ConjunctionExpression(
-            NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
             NonTerminalExpression(NonTerminal.CONJUNCTION_EXPRESSION),
             NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION),
+            NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
         ),
-        ConcatenationExpression(
-            NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
-            RepeatExpression(
-                NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION)
-            ),
-        ),
+        NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),
     NonTerminal.CONJUNCTION_EXPRESSION: ConcatenationExpression(
-        NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
+        ConjunctionExpression(
+            NonTerminalExpression(NonTerminal.BRACKET_EXPRESSION),
+            NonTerminalExpression(NonTerminal.TOKEN_EXPRESSION),
+        ),
         TerminalExpression(Terminal.VERTICAL_BAR),
         NonTerminalExpression(NonTerminal.TOKEN_COMPOUND_EXPRESSION),
     ),

@@ -44,26 +44,34 @@ def parse_as(code: str, non_terminal_name: str) -> Tree:
 @pytest.mark.parametrize(
     ["code"],
     [
+        # basic
         ("A",),
-        ("A",),
+        # bracket
         ("(A)",),
         ("( A )",),
-        ("A A",),
+        # concatenate
+        ("A B",),
+        # conjunction
         ("A|B",),
         ("A | B",),
+        # bracket bracket
         ("((A))",),
-        ("(A|B)",),
-        ("(A B)",),
+        # bracket concatenate
+        ("(A) (B)",),
+        # bracket conjunction
         ("(A) | (B)",),
-        ("(A B) | (C D)",),
-        ("(A | B) | (C | D)",),
-        ("A | B | C",),
-        ("A | (B | C)",),
-        ("(A | B) | C",),
-        ("(A | B) C",),
-        ("A (B | C)",),
-        ("A B | C",),
+        # concatenate bracket
+        ("(A B)",),
+        # concatenate concatenate
+        ("A B C",),
+        # concatenate conjunction
         ("A | B C",),
+        # conjunction bracket
+        ("(A | B)",),
+        # conjunction concatenate
+        ("A B | C",),
+        # conjunction conjunction
+        ("A | B | C",),
     ],
 )
 def test_token_compound_expression(code: str) -> None:

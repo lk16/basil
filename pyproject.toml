@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "parser"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["Luuk Verweij <luuk_verweij@msn.com>"]
 license = "BSD"

@@ -21,7 +21,6 @@ def test_grammar_up_to_date() -> None:
 
 
 def parse_as(code: str, non_terminal_name: str) -> Tree:
-
     filename = "foo.txt"
 
     tokens = Tokenizer(

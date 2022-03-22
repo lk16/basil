@@ -17,7 +17,7 @@ from parser.parser.models import (
 )
 from parser.parser.parser import Parser
 from parser.tokenizer.models import Token
-from typing import Dict
+from typing import Dict, List
 
 import pytest
 
@@ -152,7 +152,7 @@ def test_parser_concatenation() -> None:
         Token(DummyTerminal.B, 1, 1),
     ]
 
-    code = "abc"
+    code = "ab"
 
     non_terminal_rules: Dict[IntEnum, Expression] = {
         DummyNonTerminal.ROOT: ConcatenationExpression(
@@ -538,8 +538,114 @@ def test_parser_optional_at_end_of_input() -> None:
     )
 
 
-# TODO test file longer than ROOT expects
+def test_parser_parse_error() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 3),
+        Token(DummyTerminal.B, 3, 3),
+        Token(DummyTerminal.C, 6, 3),
+    ]
 
-# TODO test empty file fail
+    code = "aaabbbccc"
 
-# TODO test empty file success (ROOT = a*)
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+            TerminalExpression(DummyTerminal.B),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(ParseError) as e:
+        parser.parse()
+
+    assert "Parse error at foo.txt:1:7" in str(e.value)
+
+
+def test_parser_longer_than_root_expects() -> None:
+    tokens = [
+        Token(DummyTerminal.A, 0, 1),
+    ]
+
+    code = "a"
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: ConcatenationExpression(
+            TerminalExpression(DummyTerminal.A),
+            TerminalExpression(DummyTerminal.B),
+        ),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(ParseError) as e:
+        parser.parse()
+
+    assert "Parse error at foo.txt:1:2" in str(e.value)
+
+
+def test_parser_empty_file_fail() -> None:
+    tokens: List[Token] = []
+
+    code = ""
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: TerminalExpression(DummyTerminal.A),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    with pytest.raises(ParseError) as e:
+        parser.parse()
+
+    assert "Parse error at foo.txt:1:1" in str(e.value)
+
+
+def test_parser_empty_file_ok() -> None:
+    tokens: List[Token] = []
+
+    code = ""
+
+    non_terminal_rules: Dict[IntEnum, Expression] = {
+        DummyNonTerminal.ROOT: RepeatExpression(TerminalExpression(DummyTerminal.A)),
+        DummyNonTerminal.FOO: TerminalExpression(DummyTerminal.A),
+    }
+
+    parser = Parser(
+        filename="foo.txt",
+        tokens=tokens,
+        code=code,
+        non_terminal_rules=non_terminal_rules,
+        pruned_non_terminals=set(),
+        root_token="ROOT",
+    )
+
+    tree = parser.parse()
+
+    assert tree == Tree(
+        token_offset=0, token_count=0, token_type=DummyNonTerminal.ROOT, children=[]
+    )

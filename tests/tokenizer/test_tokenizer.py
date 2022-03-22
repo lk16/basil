@@ -156,3 +156,22 @@ def test_tokenize_prune() -> None:
         Token(DummyTerminal.A, 3, 1),
         Token(DummyTerminal.B, 6, 1),
     ]
+
+
+def test_tokenize_error_message() -> None:
+    code = "aaabbbccc"
+    terminal_rules: List[TokenDescriptor] = [
+        Literal(DummyTerminal.A, "aaa"),
+        Literal(DummyTerminal.B, "bbb"),
+        Regex(DummyTerminal.C, "[ \n]*"),
+    ]
+
+    with pytest.raises(TokenizerError) as e:
+        Tokenizer(
+            filename="foo.txt",
+            code=code,
+            terminal_rules=terminal_rules,
+            pruned_terminals=set(),
+        ).tokenize()
+
+    assert "Tokenize error at foo.txt:1:7" in str(e.value)

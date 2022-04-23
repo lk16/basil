@@ -164,13 +164,14 @@ PRUNED_NON_TERMINALS: Set[IntEnum] = {
 }
 
 
-def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
+def parse(filename: str, code: str, verbose: bool = False) -> Tuple[List[Token], Tree]:
 
     tokens: List[Token] = Tokenizer(
         filename=filename,
         code=code,
         terminal_rules=TERMINAL_RULES,
         pruned_terminals=PRUNED_TERMINALS,
+        verbose=verbose,
     ).tokenize()
 
     tree: Tree = Parser(
@@ -180,6 +181,7 @@ def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:
         non_terminal_rules=NON_TERMINAL_RULES,
         pruned_non_terminals=PRUNED_NON_TERMINALS,
         root_token="ROOT",
+        verbose=verbose,
     ).parse()
 
     return tokens, tree

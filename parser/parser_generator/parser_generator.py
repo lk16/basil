@@ -141,13 +141,14 @@ class ParserGenerator:
             parser_code += "PRUNED_NON_TERMINALS: Set[IntEnum] = set()\n\n\n"
 
         parser_code += (
-            "def parse(filename: str, code: str) -> Tuple[List[Token], Tree]:\n"
+            "def parse(filename: str, code: str, verbose: bool = False) -> Tuple[List[Token], Tree]:\n"
             "\n"
             "    tokens: List[Token] = Tokenizer(\n"
             "        filename=filename,\n"
             "        code=code,\n"
             "        terminal_rules=TERMINAL_RULES,\n"
             "        pruned_terminals=PRUNED_TERMINALS,\n"
+            "        verbose=verbose,\n"
             "    ).tokenize()\n"
             "\n"
             "    tree: Tree = Parser(\n"
@@ -156,7 +157,8 @@ class ParserGenerator:
             "        code=code,\n"
             "        non_terminal_rules=NON_TERMINAL_RULES,\n"
             "        pruned_non_terminals=PRUNED_NON_TERMINALS,\n"
-            '        root_token="ROOT"\n'
+            '        root_token="ROOT",\n'
+            "        verbose=verbose,\n"
             "    ).parse()\n"
             "\n"
             "    return tokens, tree\n"

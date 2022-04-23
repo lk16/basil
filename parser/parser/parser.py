@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 from dataclasses import replace
 from enum import IntEnum
 from parser.parser.exceptions import (
@@ -32,6 +33,7 @@ class Parser:
         non_terminal_rules: Dict[IntEnum, Expression],
         pruned_non_terminals: Set[IntEnum],
         root_token: str = "ROOT",
+        verbose: bool = False,
     ) -> None:
         self.filename = filename
         self.code = code
@@ -39,6 +41,7 @@ class Parser:
         self.non_terminal_rules = non_terminal_rules
         self.pruned_non_terminals = pruned_non_terminals
         self.root_token = root_token
+        self.verbose = verbose
 
     def parse(self) -> Tree:
         self._check_non_terminal_rules()
@@ -65,7 +68,30 @@ class Parser:
 
         return pruned_tree
 
+    def _print_parse_debug_info(self, expr: Expression, offset: int) -> None:
+        if not self.verbose:
+            return
+
+        expr_token_type = "<None>"
+        if isinstance(expr, (TerminalExpression, NonTerminalExpression)):
+            expr_token_type = expr.token_type.name
+
+        if offset >= len(self.tokens):
+            token_type = "<EOF>"
+        else:
+            token_type = self.tokens[offset].type.name
+
+        print(
+            f"DEBUG | Parser"
+            + f" | offset={offset:>5}"
+            + f" | token_type={token_type:>30}"
+            + f" | try to match with {expr_token_type:>30}",
+            file=sys.stderr,
+        )
+
     def _parse(self, expr: Expression, offset: int) -> Tree:
+        self._print_parse_debug_info(expr, offset)
+
         if offset >= len(self.tokens):
 
             if isinstance(expr, (RepeatExpression, OptionalExpression)):

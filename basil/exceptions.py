@@ -22,13 +22,12 @@ class ParseError(Exception):
         self.expected_token_types = expected_token_types
         self.offset = offset
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma:nocover
         if isinstance(self.found, EndOfFile):
             return (
                 f"{self.found.file}: Unexpected end of file\n"
                 + "Expected one of: "
                 + ", ".join(sorted(self.expected_token_types))
-                + "\n"
             )
 
         return (
@@ -36,5 +35,5 @@ class ParseError(Exception):
             + "Expected one of: "
             + ", ".join(sorted(self.expected_token_types))
             + "\n"
-            + f"          Found: {self.found.type}\n"
+            + f"          Found: {self.found.type}"
         )

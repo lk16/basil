@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Callable, List, Optional, TypeVar
 
-from basil.exceptions import TokenizerException
+from basil.exceptions import ParseError, TokenizerException
 from basil.models import Node, ParserInput, Position, Token
 from basil.syntax_loader.syntax_loader import SyntaxLoader
 
@@ -99,7 +99,11 @@ class FileParser:
 
         tokens = self.tokenize_text(text, file_name, verbose=verbose)
         parser_input = ParserInput(tokens, Path(file_name or "/unknown/path"))
-        root, offset = parser.parse(parser_input, 0, verbose=verbose)
+
+        try:
+            root, offset = parser.parse(parser_input, 0, verbose=verbose)
+        except ParseError:
+            raise self.error_collector.get_furthest_error()
 
         if offset != len(tokens):
             raise self.error_collector.get_furthest_error()

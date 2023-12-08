@@ -13,7 +13,4 @@ def test_json_error_collector() -> None:
     with pytest.raises(ParseError) as raised:
         file_parser.parse_text(text, node_type="JSON")
 
-    assert raised.value.offset == 1
-
-    parse_error = file_parser.error_collector.get_furthest_error()
-    assert parse_error.offset == 3
+    assert raised.value.offset == 3

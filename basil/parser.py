@@ -115,19 +115,15 @@ class ConcatenateParser(BaseParser):
 
 
 class ChoiceParser(BaseParser):
-    def __init__(self, first: BaseParser, second: BaseParser) -> None:
+    def __init__(self, parsers: List[BaseParser]) -> None:
         self.parsers: List[BaseParser] = []
 
-        # Flattening logic
-        if isinstance(first, ChoiceParser):
-            self.parsers += first.parsers
-        else:
-            self.parsers.append(first)
+        for parser in parsers:
+            if isinstance(parser, ChoiceParser):
+                self.parsers += parser.parsers
+            else:
+                self.parsers.append(parser)
 
-        if isinstance(second, ChoiceParser):
-            self.parsers += second.parsers
-        else:
-            self.parsers.append(second)
         super().__init__()
 
     def __repr__(self) -> str:  # pragma:nocover

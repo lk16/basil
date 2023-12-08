@@ -335,7 +335,7 @@ class SyntaxLoader:
             if isinstance(next_child, Choice):
                 raise NodeDefinitionParseError(node_type)
 
-            children.append(ChoiceParser(prev_child, next_child))
+            children.append(ChoiceParser([prev_child, next_child]))
             offset += 2
 
         if len(children) == 0:

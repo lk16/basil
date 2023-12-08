@@ -53,6 +53,14 @@ class SyntaxJSONLoadError(Exception):
         return f"Could not load Syntax JSON: {self.msg}"
 
 
+class SyntaxJSONParseError(SyntaxJSONLoadError):
+    def __init__(self, error: ValueError) -> None:
+        self.error = error
+
+    def __str__(self) -> str:
+        return f"parse error: {self.error}"
+
+
 class ParseError(Exception):
     def __init__(
         self,

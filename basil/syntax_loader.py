@@ -3,7 +3,11 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from basil.exceptions import ParseErrorCollector, SyntaxJSONLoadError
+from basil.exceptions import (
+    ParseErrorCollector,
+    SyntaxJSONLoadError,
+    SyntaxJSONParseError,
+)
 from basil.models import Choice
 from basil.parser import (
     BaseParser,
@@ -35,10 +39,8 @@ class SyntaxLoader:
     def _load_json(self, syntax_file_content: str) -> Dict[str, Any]:
         try:
             loaded_json = json.loads(syntax_file_content)
-        except FileNotFoundError:
-            raise SyntaxJSONLoadError("could not find file")
         except ValueError as e:
-            raise SyntaxJSONLoadError(f"parse error: {e}")
+            raise SyntaxJSONParseError(e)
 
         if not isinstance(loaded_json, dict):
             raise SyntaxJSONLoadError("Expected root to be a JSON object")

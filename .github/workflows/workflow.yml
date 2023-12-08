@@ -29,4 +29,4 @@ jobs:
     - name: Run Python tests
       run: |
         pdm install
-        pdm run pytest --color=yes --cov=parser --cov-report=term-missing -x -vv
+        pdm run pytest --color=yes --cov=basil --cov-report=term-missing -x -vv

@@ -1,38 +1,32 @@
 name: Python package
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.10
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11.3
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
-    - name: Install poetry
-      uses: snok/install-poetry@v1.3.0
+        python-version: '3.11.3'
+    - uses: pdm-project/setup-pdm@v3
+      name: Setup PDM
       with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        python-version: "3.11.3"           # Version range or exact version of a Python version to use, the same as actions/setup-python
+        architecture: x64                # The target architecture (x86, x64) of the Python interpreter. the same as actions/setup-python
+        version: head
+        prerelease: false                # Allow prerelease versions of PDM to be installed
+        enable-pep582: false             # Enable PEP 582 package loading globally
+        allow-python-prereleases: false  # Allow prerelease versions of Python to be installed. For example if only 3.12-dev is available, 3.12 will fallback to 3.12-dev
     - name: Install dependencies
-      run: poetry install
-    - name: Load cached pre-commit env
-      id: cached-pre-commit-dependencies
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit-${{ runner.os }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+      run: pdm install
     - name: Run linters
       run:
-        poetry run pre-commit run --all-files
-    - name: Run tests
+        pdm add pre-commit &&
+        pdm run pre-commit run --all-files
+    - name: Run Python tests
       run: |
-        poetry run pytest --cov=parser --cov-report=term-missing -x -vv
+        pdm install
+        pdm run pytest --color=yes --cov=parser --cov-report=term-missing -x -vv

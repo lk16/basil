@@ -14,7 +14,7 @@ class ParseErrorCollector:
         self.errors = []
 
     def get_furthest_error(self) -> "ParseError":
-        if not self.errors:
+        if not self.errors:  # pragma:nocover
             raise ValueError("No errors were collected.")
 
         max_offset = -1

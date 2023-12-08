@@ -1,9 +1,8 @@
-from pathlib import Path
-
 import pytest
 
 from basil.exceptions import ParseError, TokenizerException
 from basil.file_parser import FileParser
+from tests.json_parser import SYNTAX_JSON
 
 
 @pytest.mark.parametrize(
@@ -54,9 +53,8 @@ from basil.file_parser import FileParser
         ("OBJECT", "3", False),
     ],
 )
-def test_syntax_json(node_type: str, text: str, should_parse: bool) -> None:
-    syntax_json = Path(__file__).parent / "syntax.json"
-    file_parser = FileParser(syntax_json)
+def test_json_syntax(node_type: str, text: str, should_parse: bool) -> None:
+    file_parser = FileParser(SYNTAX_JSON)
 
     try:
         file_parser.parse_text(text, node_type=node_type)

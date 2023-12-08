@@ -220,10 +220,6 @@ class SyntaxLoader:
                 found = segment_regex.match(node_value, offset)
 
                 if found:
-                    if found.start() != offset:
-                        found = None
-                        continue
-
                     segments.append((segment_type, found.group(0)))
                     offset += len(found.group(0))
                     break

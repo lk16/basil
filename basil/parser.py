@@ -14,7 +14,7 @@ class BaseParser:
 
     def _print(
         self, input: ParserInput, offset: int, verbose: bool, parser_name: str
-    ) -> None:
+    ) -> None:  # pragma:nocover
         if not verbose:
             return
 
@@ -27,15 +27,16 @@ class BaseParser:
 
     def parse(
         self, input: ParserInput, offset: int, verbose: bool = False
-    ) -> Tuple[Token | InnerNode, int]:
+    ) -> Tuple[Token | InnerNode, int]:  # pragma:nocover
         raise NotImplementedError  # Implemented in subclasses.
 
 
 class TokenParser(BaseParser):
     def __init__(self, token_type: str) -> None:
         self.token_type = token_type
+        super().__init__()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return self.token_type
 
     def parse(
@@ -62,8 +63,9 @@ class NodeParser(BaseParser):
     def __init__(self, node_type: str) -> None:
         self.node_type = node_type
         self.inner: Optional[BaseParser] = None
+        super().__init__()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return self.node_type
 
     def parse(
@@ -83,6 +85,7 @@ class ConcatenateParser(BaseParser):
     ) -> None:
         self.parsers: List[BaseParser] = []
         self.node_type = node_type
+        super().__init__()
 
         # Flattening logic
         for parser in parsers:
@@ -91,7 +94,7 @@ class ConcatenateParser(BaseParser):
             else:
                 self.parsers.append(parser)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return "(" + " ".join(repr(parser) for parser in self.parsers) + ")"
 
     def parse(
@@ -125,8 +128,9 @@ class ChoiceParser(BaseParser):
             self.parsers += second.parsers
         else:
             self.parsers.append(second)
+        super().__init__()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return "(" + " | ".join(repr(parser) for parser in self.parsers) + " )"
 
     def parse(
@@ -152,8 +156,9 @@ class ChoiceParser(BaseParser):
 class OptionalParser(BaseParser):
     def __init__(self, parser: BaseParser) -> None:
         self.inner = parser
+        super().__init__()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return "(" + repr(self.inner) + ")?"
 
     def parse(
@@ -171,8 +176,9 @@ class RepeatParser(BaseParser):
     def __init__(self, parser: BaseParser, min_repeats: int = 0) -> None:
         self.inner = parser
         self.min_repeats = min_repeats
+        super().__init__()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma:nocover
         return "(" + repr(self.inner) + ")*"
 
     def parse(

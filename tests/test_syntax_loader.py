@@ -3,31 +3,31 @@ from typing import Type
 
 import pytest
 
-from basil.exceptions import (
-    SyntaxJSONBadNodeTypeName,
-    SyntaxJSONBadTokenTypeName,
-    SyntaxJSONDuplicateTokenType,
-    SyntaxJSONInvalidRoot,
-    SyntaxJSONLoadError,
-    SyntaxJSONMissingFields,
-    SyntaxJSONNodeDefinitionParseError,
-    SyntaxJSONNodeDefinitionUnknownNodeError,
-    SyntaxJSONNodeDefinitionUnknownTokenError,
-    SyntaxJSONParseError,
-    SyntaxJSONRegexError,
-    SyntaxJSONUnexpectedFields,
-    SyntaxJSONUnexpectedFieldType,
-    SyntaxJSONUnknownFilteredTokenTypes,
-    SyntaxJSONUnknownRootNode,
+from basil.syntax_loader.exceptions import (
+    BadNodeTypeName,
+    BadTokenTypeName,
+    DuplicateTokenType,
+    InvalidRoot,
+    LoadError,
+    MissingFields,
+    NodeDefinitionParseError,
+    NodeDefinitionUnknownNodeError,
+    NodeDefinitionUnknownTokenError,
+    ParseError,
+    RegexError,
+    UnexpectedFields,
+    UnexpectedFieldType,
+    UnknownFilteredTokenTypes,
+    UnknownRootNode,
 )
-from basil.syntax_loader import SyntaxLoader
+from basil.syntax_loader.syntax_loader import SyntaxLoader
 
 
 @pytest.mark.parametrize(
     ["syntax_file_content", "expected_error_type"],
     [
-        pytest.param("", SyntaxJSONParseError, id="empty"),
-        pytest.param("[]", SyntaxJSONInvalidRoot, id="invalid-root"),
+        pytest.param("", ParseError, id="empty"),
+        pytest.param("[]", InvalidRoot, id="invalid-root"),
         pytest.param(
             """{
                 "filtered_tokens": {},
@@ -37,14 +37,14 @@ from basil.syntax_loader import SyntaxLoader
                 "root_node": "",
                 "unexpected": ""
             }""",
-            SyntaxJSONUnexpectedFields,
+            UnexpectedFields,
             id="unexpected-fields",
         ),
         pytest.param(
             """{
                 "filtered_tokens": ""
             }""",
-            SyntaxJSONMissingFields,
+            MissingFields,
             id="missing-fields",
         ),
         pytest.param(
@@ -55,7 +55,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-keyword-tokens",
         ),
         pytest.param(
@@ -66,7 +66,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": "",
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-regular-tokens",
         ),
         pytest.param(
@@ -77,7 +77,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-keyword-token-item",
         ),
         pytest.param(
@@ -88,7 +88,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {"foo": 3},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-regular-token-item",
         ),
         pytest.param(
@@ -99,7 +99,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-filtered-tokens",
         ),
         pytest.param(
@@ -110,7 +110,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-filtered-token-item",
         ),
         pytest.param(
@@ -121,7 +121,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-nodes",
         ),
         pytest.param(
@@ -132,7 +132,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-node-item",
         ),
         pytest.param(
@@ -143,7 +143,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": 3
             }""",
-            SyntaxJSONUnexpectedFieldType,
+            UnexpectedFieldType,
             id="wrong-field-type-root-node",
         ),
         pytest.param(
@@ -154,7 +154,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {"foo": ""},
                 "root_node": ""
             }""",
-            SyntaxJSONDuplicateTokenType,
+            DuplicateTokenType,
             id="duplicate-token-type",
         ),
         pytest.param(
@@ -165,7 +165,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONRegexError,
+            RegexError,
             id="regex-error-in-keyword-token",
         ),
         pytest.param(
@@ -176,7 +176,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {"foo": "["},
                 "root_node": ""
             }""",
-            SyntaxJSONRegexError,
+            RegexError,
             id="regex-error-in-regular-token",
         ),
         pytest.param(
@@ -187,7 +187,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": ""
             }""",
-            SyntaxJSONUnknownFilteredTokenTypes,
+            UnknownFilteredTokenTypes,
             id="unknown-filtered-token-type",
         ),
         pytest.param(
@@ -198,7 +198,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "foo"
             }""",
-            SyntaxJSONUnknownRootNode,
+            UnknownRootNode,
             id="unknown-root-node",
         ),
         pytest.param(
@@ -209,7 +209,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "root"
             }""",
-            SyntaxJSONBadTokenTypeName,
+            BadTokenTypeName,
             id="bad-keyword-token-type-name",
         ),
         pytest.param(
@@ -220,7 +220,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {"FOO": ""},
                 "root_node": "root"
             }""",
-            SyntaxJSONBadTokenTypeName,
+            BadTokenTypeName,
             id="bad-regular-token-type-name",
         ),
         pytest.param(
@@ -231,7 +231,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "root"
             }""",
-            SyntaxJSONBadNodeTypeName,
+            BadNodeTypeName,
             id="bad-node-type-name",
         ),
         pytest.param(
@@ -242,7 +242,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-tokenize-error",
         ),
         pytest.param(
@@ -253,7 +253,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionUnknownTokenError,
+            NodeDefinitionUnknownTokenError,
             id="parser-definition-unknown-token",
         ),
         pytest.param(
@@ -264,7 +264,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionUnknownNodeError,
+            NodeDefinitionUnknownNodeError,
             id="parser-definition-unknown-node",
         ),
         pytest.param(
@@ -275,7 +275,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-repeat-without-prefix",
         ),
         pytest.param(
@@ -286,7 +286,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-optional-without-prefix",
         ),
         pytest.param(
@@ -297,7 +297,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-repeat-atleast-once-without-prefix",
         ),
         pytest.param(
@@ -308,7 +308,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-repeat-after-choice",
         ),
         pytest.param(
@@ -319,7 +319,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-optional-after-choice",
         ),
         pytest.param(
@@ -330,7 +330,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-repeat-atleast-once-after-choice",
         ),
         pytest.param(
@@ -341,7 +341,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-choice-without-prefix",
         ),
         pytest.param(
@@ -352,7 +352,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-unmatched-group-end",
         ),
         pytest.param(
@@ -363,7 +363,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-unmatched-group-start",
         ),
         pytest.param(
@@ -374,7 +374,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-choice-without-rhs",
         ),
         pytest.param(
@@ -385,7 +385,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-choice-with-whitespace-rhs",
         ),
         pytest.param(
@@ -396,7 +396,7 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-choice-with-choice-rhs",
         ),
         pytest.param(
@@ -407,13 +407,13 @@ from basil.syntax_loader import SyntaxLoader
                 "regular_tokens": {},
                 "root_node": "FOO"
             }""",
-            SyntaxJSONNodeDefinitionParseError,
+            NodeDefinitionParseError,
             id="parser-definition-error-empty-concatenate-parser",
         ),
     ],
 )
 def test_syntax_loader_errors(
-    syntax_file_content: str, expected_error_type: Type[SyntaxJSONLoadError]
+    syntax_file_content: str, expected_error_type: Type[LoadError]
 ) -> None:
     with pytest.raises(expected_error_type):
         SyntaxLoader(syntax_file_content)

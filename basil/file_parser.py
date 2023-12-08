@@ -3,7 +3,7 @@ from typing import Callable, List, Optional, TypeVar
 
 from basil.exceptions import TokenizerException
 from basil.models import Node, ParserInput, Position, Token
-from basil.syntax_loader import SyntaxLoader
+from basil.syntax_loader.syntax_loader import SyntaxLoader
 
 T = TypeVar("T")
 

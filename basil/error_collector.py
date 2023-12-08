@@ -8,7 +8,18 @@ class ParseErrorCollector:
         self.errors: List[ParseError] = []
 
     def register(self, error: "ParseError") -> None:
-        self.errors.append(error)
+        # We only keep the furthest errors
+
+        if not self.errors:
+            self.errors = [error]
+
+        max_offset = self.errors[0].offset
+
+        if error.offset > max_offset:
+            self.errors = [error]
+
+        if error.offset == max_offset:
+            self.errors.append(error)
 
     def reset(self) -> None:
         self.errors = []
@@ -17,21 +28,12 @@ class ParseErrorCollector:
         if not self.errors:  # pragma:nocover
             raise ValueError("No errors were collected.")
 
-        max_offset = -1
-        furthest_errors: List[ParseError] = []
-
-        for error in self.errors:
-            if error.offset > max_offset:
-                max_offset = error.offset
-                furthest_errors = [error]
-            if error.offset == max_offset:
-                furthest_errors.append(error)
-
-        furthest_token = furthest_errors[0].found
+        offset = self.errors[0].offset
+        found = self.errors[0].found
 
         expected_token_types: Set[str] = set()
 
-        for error in furthest_errors:
+        for error in self.errors:
             expected_token_types.update(error.expected_token_types)
 
-        return ParseError(max_offset, furthest_token, expected_token_types)
+        return ParseError(offset, found, expected_token_types)

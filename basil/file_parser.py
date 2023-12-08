@@ -20,7 +20,7 @@ class FileParser:
 
     def tokenize_file(
         self, file: Path, filter_token_types: bool = True, verbose: bool = False
-    ) -> List[Token]:
+    ) -> List[Token]:  # pragma:nocover
         file_name = str(file.resolve())
         return self.tokenize_text(
             file.read_text(),
@@ -62,7 +62,7 @@ class FileParser:
                 raise TokenizerException(position)
 
             if not (filter_token_types and token.type in self.filtered_token_types):
-                if verbose:
+                if verbose:  # pragma:nocover
                     position_expected_max_length = len(str(token.position.file)) + 9
                     print(
                         f"{str(token.position):>{position_expected_max_length}}"

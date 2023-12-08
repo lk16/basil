@@ -1,34 +1,81 @@
-from typing import Tuple
+from parser.models import EndOfFile, Position, Token
+from typing import List, Set
 
 
-class EqualitySupportingException(Exception):
-    def __eq__(self, o: object) -> bool:
-        return type(o) == type(self) and vars(o) == vars(self)
+class ParseErrorCollector:
+    def __init__(self) -> None:
+        self.errors: List[ParseError] = []
+
+    def register(self, error: "ParseError") -> None:
+        self.errors.append(error)
+
+    def reset(self) -> None:
+        self.errors = []
+
+    def get_furthest_error(self) -> "ParseError":
+        if not self.errors:
+            raise ValueError("No errors were collected.")
+
+        max_offset = -1
+        furthest_errors: List[ParseError] = []
+
+        for error in self.errors:
+            if error.offset > max_offset:
+                max_offset = error.offset
+                furthest_errors = [error]
+            if error.offset == max_offset:
+                furthest_errors.append(error)
+
+        furthest_token = furthest_errors[0].found
+
+        expected_token_types: Set[str] = set()
+
+        for error in furthest_errors:
+            expected_token_types.update(error.expected_token_types)
+
+        return ParseError(max_offset, furthest_token, expected_token_types)
 
 
-class BaseParseError(EqualitySupportingException):
-    def __init__(self, filename: str, code: str, offset: int) -> None:
-        self.filename = filename
-        self.code = code
+class TokenizerException(Exception):
+    def __init__(self, position: Position) -> None:
+        self.position = position
+
+    def __str__(self) -> str:
+        return f"{self.position}: Tokenization failed."
+
+
+class SyntaxJSONLoadError(Exception):
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return f"Could not load Syntax JSON: {self.msg}"
+
+
+class ParseError(Exception):
+    def __init__(
+        self,
+        offset: int,
+        found: Token | EndOfFile,
+        expected_token_types: Set[str],
+    ) -> None:
+        self.found = found
+        self.expected_token_types = expected_token_types
         self.offset = offset
-        super().__init__(self.what())
 
-    def get_line_column_numbers(self) -> Tuple[int, int]:
-        before_offset = self.code[: self.offset]
-        line_num = 1 + before_offset.count("\n")
-        prev_newline_offset = before_offset.rfind("\n")
-        col_num = self.offset - prev_newline_offset
-        return line_num, col_num
+    def __str__(self) -> str:
+        if isinstance(self.found, EndOfFile):
+            return (
+                f"{self.found.file}: Unexpected end of file\n"
+                + "Expected one of: "
+                + ", ".join(sorted(self.expected_token_types))
+                + "\n"
+            )
 
-    def get_line(self) -> str:
-        prev_newline = self.code.rfind("\n", 0, self.offset)
-
-        next_newline = self.code.find("\n", self.offset)
-        if next_newline == -1:
-            next_newline = len(self.code)
-
-        return self.code[prev_newline + 1 : next_newline]
-
-    def what(self) -> str:  # pragma: nocover
-        # should be overridden by subclasses
-        return "Don't use BaseParseError directly!"
+        return (
+            f"{self.found.position}: Unexpected token type\n"
+            + "Expected one of: "
+            + ", ".join(sorted(self.expected_token_types))
+            + "\n"
+            + f"          Found: {self.found.type}\n"
+        )

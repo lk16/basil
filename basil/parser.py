@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 
-from basil.exceptions import ParseError, ParseErrorCollector
+from basil.error_collector import ParseErrorCollector
+from basil.exceptions import ParseError
 from basil.models import EndOfFile, InnerNode, ParserInput, Token
 
 

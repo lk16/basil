@@ -3,7 +3,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from basil.exceptions import ParseErrorCollector
+from basil.error_collector import ParseErrorCollector
 from basil.models import Choice
 from basil.parser import (
     BaseParser,

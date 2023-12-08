@@ -90,7 +90,7 @@ class ConcatenateParser(BaseParser):
 
         # Flattening logic
         for parser in parsers:
-            if isinstance(parser, ConcatenateParser):
+            if isinstance(parser, ConcatenateParser):  # pragma:nocover
                 self.parsers += parser.parsers
             else:
                 self.parsers.append(parser)

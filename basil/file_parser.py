@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Callable, List, Optional, TypeVar
 
-from basil.exceptions import TokenizerException
+from basil.exceptions import ParseError, TokenizerException
 from basil.models import Node, ParserInput, Position, Token
-from basil.syntax_loader import SyntaxLoader
+from basil.syntax_loader.syntax_loader import SyntaxLoader
 
 T = TypeVar("T")
 
@@ -20,7 +20,7 @@ class FileParser:
 
     def tokenize_file(
         self, file: Path, filter_token_types: bool = True, verbose: bool = False
-    ) -> List[Token]:
+    ) -> List[Token]:  # pragma:nocover
         file_name = str(file.resolve())
         return self.tokenize_text(
             file.read_text(),
@@ -62,7 +62,7 @@ class FileParser:
                 raise TokenizerException(position)
 
             if not (filter_token_types and token.type in self.filtered_token_types):
-                if verbose:
+                if verbose:  # pragma:nocover
                     position_expected_max_length = len(str(token.position.file)) + 9
                     print(
                         f"{str(token.position):>{position_expected_max_length}}"
@@ -99,7 +99,11 @@ class FileParser:
 
         tokens = self.tokenize_text(text, file_name, verbose=verbose)
         parser_input = ParserInput(tokens, Path(file_name or "/unknown/path"))
-        root, offset = parser.parse(parser_input, 0, verbose=verbose)
+
+        try:
+            root, offset = parser.parse(parser_input, 0, verbose=verbose)
+        except ParseError:
+            raise self.error_collector.get_furthest_error()
 
         if offset != len(tokens):
             raise self.error_collector.get_furthest_error()

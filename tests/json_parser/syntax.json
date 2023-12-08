@@ -1,0 +1,28 @@
+{
+    "keyword_tokens": {},
+    "regular_tokens": {
+        "array_end": "]",
+        "array_start": "\\[",
+        "colon": ":",
+        "comma": ",",
+        "false": "false",
+        "integer": "(-)?[0-9]+",
+        "null": "null",
+        "object_end": "}",
+        "object_start": "{",
+        "string": "\"[^\"]*\"",
+        "true": "true",
+        "whitespace": "\\s+"
+    },
+    "filtered_tokens": [
+        "whitespace"
+    ],
+    "nodes": {
+        "BOOLEAN": "true | false",
+        "ARRAY": "array_start (JSON (comma JSON)*)? array_end",
+        "OBJECT_ITEM": "string colon JSON",
+        "OBJECT": "object_start (OBJECT_ITEM (comma OBJECT_ITEM)*)? object_end",
+        "JSON": "null | BOOLEAN | integer | string | ARRAY | OBJECT"
+    },
+    "root_node": "JSON"
+}

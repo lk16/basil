@@ -3,7 +3,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from basil.exceptions import ParseErrorCollector, SyntaxJSONLoadError
+from basil.error_collector import ParseErrorCollector
 from basil.models import Choice
 from basil.parser import (
     BaseParser,
@@ -13,6 +13,22 @@ from basil.parser import (
     OptionalParser,
     RepeatParser,
     TokenParser,
+)
+from basil.syntax_loader.exceptions import (
+    BadNodeTypeName,
+    BadTokenTypeName,
+    DuplicateTokenType,
+    InvalidRoot,
+    MissingFields,
+    NodeDefinitionParseError,
+    NodeDefinitionUnknownNodeError,
+    NodeDefinitionUnknownTokenError,
+    ParseError,
+    RegexError,
+    UnexpectedFields,
+    UnexpectedFieldType,
+    UnknownFilteredTokenTypes,
+    UnknownRootNode,
 )
 
 NODE_TYPE_REGEX = re.compile("[A-Z][A-Z_]*")
@@ -35,13 +51,11 @@ class SyntaxLoader:
     def _load_json(self, syntax_file_content: str) -> Dict[str, Any]:
         try:
             loaded_json = json.loads(syntax_file_content)
-        except FileNotFoundError:
-            raise SyntaxJSONLoadError("could not find file")
         except ValueError as e:
-            raise SyntaxJSONLoadError(f"parse error: {e}")
+            raise ParseError(e)
 
         if not isinstance(loaded_json, dict):
-            raise SyntaxJSONLoadError("Expected root to be a JSON object")
+            raise InvalidRoot
 
         return loaded_json
 
@@ -60,51 +74,52 @@ class SyntaxLoader:
         unexpected_fields = found_fields - expected_fields
 
         if unexpected_fields:
-            raise SyntaxJSONLoadError(
-                "Unexpected fields in JSON root: "
-                + ", ".join(sorted(unexpected_fields))
-            )
+            raise UnexpectedFields(unexpected_fields)
 
         if missing_fields:
-            raise SyntaxJSONLoadError(
-                "Missing fields in JSON root: " + ", ".join(sorted(missing_fields))
-            )
+            raise MissingFields(missing_fields)
 
     def _check_json_field_types(
         self, loaded_json: Dict[str, Any]
     ) -> Tuple[Dict[str, str], Dict[str, str], Set[str], Dict[str, str], str]:
         if not isinstance(loaded_json["keyword_tokens"], dict):
-            raise SyntaxJSONLoadError("JSON filtered_tokens is not a dict")
+            raise UnexpectedFieldType(
+                "keyword_tokens", "dict", loaded_json["keyword_tokens"]
+            )
 
-        for item in loaded_json["keyword_tokens"].values():
-            if not isinstance(item, str):
-                raise SyntaxJSONLoadError(f"JSON filtered_item {item} is not a string")
+        for key, value in loaded_json["keyword_tokens"].items():
+            if not isinstance(value, str):
+                raise UnexpectedFieldType(f"keyword_tokens -> {key}", "string", value)
 
         if not isinstance(loaded_json["regular_tokens"], dict):
-            raise SyntaxJSONLoadError("JSON regular_tokens is not a dict")
+            raise UnexpectedFieldType(
+                "regular_tokens", "dict", loaded_json["regular_tokens"]
+            )
 
-        for item in loaded_json["regular_tokens"].values():
-            if not isinstance(item, str):
-                raise SyntaxJSONLoadError(f"JSON regular_tokens {item} is not a string")
+        for key, value in loaded_json["regular_tokens"].items():
+            if not isinstance(value, str):
+                raise UnexpectedFieldType(f"regular_tokens -> {key}", "string", value)
 
         if not isinstance(loaded_json["filtered_tokens"], list):
-            raise SyntaxJSONLoadError("JSON filtered_tokens is not a list")
+            raise UnexpectedFieldType(
+                "filtered_tokens", "list", loaded_json["filtered_tokens"]
+            )
 
-        for item in loaded_json["filtered_tokens"]:
+        for offset, item in enumerate(loaded_json["filtered_tokens"]):
             if not isinstance(item, str):
-                raise SyntaxJSONLoadError(
-                    f"each item iin JSON filter_tokens should be a string"
+                raise UnexpectedFieldType(
+                    f"filter_tokens -> offset {offset}", "string", item
                 )
 
         if not isinstance(loaded_json["nodes"], dict):
-            raise SyntaxJSONLoadError("JSON nodes is not a dict")
+            raise UnexpectedFieldType("nodes", "dict", loaded_json["nodes"])
 
-        for item in loaded_json["nodes"].values():
-            if not isinstance(item, str):
-                raise SyntaxJSONLoadError(f"JSON nodes {item} is not a string")
+        for key, value in loaded_json["nodes"].items():
+            if not isinstance(value, str):
+                raise UnexpectedFieldType(f"nodes -> {key}", "string", value)
 
         if not isinstance(loaded_json["root_node"], str):
-            raise SyntaxJSONLoadError("JSON root_node is not a string")
+            raise UnexpectedFieldType("root_node", "string", loaded_json["root_node"])
 
         return (
             loaded_json["keyword_tokens"],
@@ -114,7 +129,7 @@ class SyntaxLoader:
             loaded_json["root_node"],
         )
 
-    def _build_tokens_regexes(
+    def _build_token_regexes(
         self, keyword_tokens: Dict[str, str], regular_tokens: Dict[str, str]
     ) -> List[Tuple[str, re.Pattern[str]]]:
         tokens_list: List[Tuple[str, re.Pattern[str]]] = []
@@ -124,14 +139,12 @@ class SyntaxLoader:
 
         for token_type, regex in token_items:
             if token_type in token_types:
-                raise SyntaxJSONLoadError(f"Duplicate token type {token_type}")
+                raise DuplicateTokenType(token_type)
 
             try:
                 pattern = re.compile(regex)
-            except re.error:
-                raise SyntaxJSONLoadError(
-                    f"Failed to compile regex for token type {token_type}"
-                )
+            except re.error as e:
+                raise RegexError(token_type, e)
 
             token_types.add(token_type)
             tokens_list.append((token_type, pattern))
@@ -139,24 +152,21 @@ class SyntaxLoader:
         return tokens_list
 
     def _check_values(self) -> None:
-        missing_filtered_token_types = self.filtered_tokens - self.token_types
+        unknown_filtered_token_types = self.filtered_tokens - self.token_types
 
-        if missing_filtered_token_types:
-            raise SyntaxJSONLoadError(
-                f"Unknown filtered token type(s): "
-                + ", ".join(sorted(missing_filtered_token_types))
-            )
+        if unknown_filtered_token_types:
+            raise UnknownFilteredTokenTypes(unknown_filtered_token_types)
 
         if self.root_node_type not in self.nodes:
-            raise SyntaxJSONLoadError("Root node was not found in nodes.")
+            raise UnknownRootNode(self.root_node_type)
 
         for token_type, _ in self.tokens:
             if not TOKEN_TYPE_REGEX.fullmatch(token_type):
-                raise SyntaxJSONLoadError(f"Token {token_type} has wrong formatting")
+                raise BadTokenTypeName(token_type)
 
         for node_type in self.nodes.keys():
             if not NODE_TYPE_REGEX.fullmatch(node_type):
-                raise SyntaxJSONLoadError(f"Node {node_type} has wrong formatting")
+                raise BadNodeTypeName(node_type)
 
     def __init__(self, syntax_file_content: str) -> None:
         loaded_json = self._load_json(syntax_file_content)
@@ -170,7 +180,7 @@ class SyntaxLoader:
             self.root_node_type,
         ) = self._check_json_field_types(loaded_json)
 
-        self.tokens = self._build_tokens_regexes(keyword_tokens, regular_tokens)
+        self.tokens = self._build_token_regexes(keyword_tokens, regular_tokens)
 
         self.token_types = {item[0] for item in self.tokens}
 
@@ -220,18 +230,12 @@ class SyntaxLoader:
                 found = segment_regex.match(node_value, offset)
 
                 if found:
-                    if found.start() != offset:
-                        found = None
-                        continue
-
                     segments.append((segment_type, found.group(0)))
                     offset += len(found.group(0))
                     break
 
             if not found:
-                raise SyntaxJSONLoadError(
-                    f"Could not create parser from definition of node {node_type}, error at offset {offset}."
-                )
+                raise NodeDefinitionParseError(node_type, offset)
 
         segments = [segment for segment in segments if segment[0] != "whitespace"]
 
@@ -242,13 +246,9 @@ class SyntaxLoader:
     ) -> ConcatenateParser:
         for segment_type, segment_value in segments:
             if segment_type == "token" and segment_value not in self.token_types:
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Unknown token type {segment_value}"
-                )
+                raise NodeDefinitionUnknownTokenError(node_type, segment_value)
             if segment_type == "node" and segment_value not in self.nodes:
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Unknown node type {segment_value}"
-                )
+                raise NodeDefinitionUnknownNodeError(node_type, segment_value)
 
         parser_or_choice_list: List[Choice | BaseParser] = []
 
@@ -284,14 +284,10 @@ class SyntaxLoader:
                 try:
                     last_item = parser_or_choice_list.pop()
                 except IndexError:
-                    raise SyntaxJSONLoadError(
-                        f"In parser definition for node {node_type}: Invalid syntax"
-                    )
+                    raise NodeDefinitionParseError(node_type)
 
                 if isinstance(last_item, Choice):
-                    raise SyntaxJSONLoadError(
-                        f"In parser definition for node {node_type}: Invalid syntax"
-                    )
+                    raise NodeDefinitionParseError(node_type)
 
                 if segment_type == "optional":
                     parser_or_choice_list.append(OptionalParser(last_item))
@@ -300,20 +296,15 @@ class SyntaxLoader:
                 elif segment_type == "repeat_at_least_once":
                     parser_or_choice_list.append(RepeatParser(last_item, min_repeats=1))
                 else:
-                    raise NotImplementedError  # This should never happen
+                    raise NotImplementedError  # pragma:nocover # This should never happen
 
                 offset += 1
 
             elif segment_type == "group_end":
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Invalid syntax"
-                )
+                raise NodeDefinitionParseError(node_type)
 
-            elif segment_type == "whitespace":
-                raise NotImplementedError  # This should never happen
-
-            else:
-                raise NotImplementedError  # Unknown segment type
+            else:  # pragma:nocover
+                raise NotImplementedError  # Unexpected segment type
 
         return self._handle_resolve_choice(node_type, parser_or_choice_list)
 
@@ -334,29 +325,22 @@ class SyntaxLoader:
             try:
                 prev_child = children.pop()
             except IndexError:
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Invalid syntax"
-                )
+                raise NodeDefinitionParseError(node_type)
 
             try:
                 next_child = parser_or_choice_list[offset + 1]
             except IndexError:
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Invalid syntax"
-                )
+                raise NodeDefinitionParseError(node_type)
 
             if isinstance(next_child, Choice):
-                raise SyntaxJSONLoadError(
-                    f"In parser definition for node {node_type}: Invalid syntax"
-                )
+                raise NodeDefinitionParseError(node_type)
 
-            children.append(ChoiceParser(prev_child, next_child))
+            children.append(ChoiceParser([prev_child, next_child]))
             offset += 2
 
         if len(children) == 0:
-            raise SyntaxJSONLoadError(
-                f"In parser definition for node {node_type}: Empty group is not allowed"
-            )
+            # Empty group is not allowed
+            raise NodeDefinitionParseError(node_type)
 
         return ConcatenateParser(children)
 
@@ -376,6 +360,5 @@ class SyntaxLoader:
                 if group_end_remaining == 0:
                     return offset
 
-        raise SyntaxJSONLoadError(
-            f"In parser definition for node {node_type}: Some brackets don't match"
-        )
+        # Brackets don't match
+        raise NodeDefinitionParseError(node_type)

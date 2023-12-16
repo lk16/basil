@@ -12,6 +12,16 @@ Limitations:
 * Does not detect conflicts
 * Not designed for speed
 
+### How to install
+
+```sh
+# If you use pip
+pip install basil-parser==0.4.3
+
+# If you use PDM
+pdm install basil-parser==0.4.3
+```
+
 
 ### How to use
 
@@ -93,4 +103,4 @@ Contains a list of children Used to group tokens into a block of code, or data. 
 This project was called "Basil" because many people call their parser library parsley.
 
 ### License
-This software is released under the [BSD license](./LICENSE.md).
+This software is released under the [MIT license](./LICENSE.md).

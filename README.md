@@ -12,6 +12,16 @@ Limitations:
 * Does not detect conflicts
 * Not designed for speed
 
+### How to install
+
+```sh
+# If you use pip
+pip install basil-parser==0.4.2
+
+# If you use PDM
+pdm install basil-parser==0.4.2
+```
+
 
 ### How to use
 

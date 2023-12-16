@@ -1,5 +1,5 @@
 [project]
-name = "basil"
+name = "basil-parser"
 version = "0.4.2"
 description = "Parser library using JSON file to describe language."
 authors = [

@@ -16,10 +16,10 @@ Limitations:
 
 ```sh
 # If you use pip
-pip install basil-parser==0.4.2
+pip install basil-parser==0.4.3
 
 # If you use PDM
-pdm install basil-parser==0.4.2
+pdm install basil-parser==0.4.3
 ```
 
 

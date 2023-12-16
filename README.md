@@ -19,7 +19,7 @@ Limitations:
 pip install basil-parser==0.4.3
 
 # If you use PDM
-pdm install basil-parser==0.4.3
+pdm add basil-parser==0.4.3
 ```
 
 
